@@ -1,5 +1,5 @@
-import { app } from "./app";
-import { connectDb } from "./config/db";
+import { app } from "./app.js";
+import { connectDb } from "./config/db.js";
 
 // 1. Invoke the database connection asynchronously without blocking container startup
 connectDb().catch((error) => {
