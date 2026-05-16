@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { adminRouter } from "./admin.routes";
-import { authRouter } from "./auth.routes";
-import { adminBookingRouter, bookingRouter, driverBookingRouter } from "./booking.routes";
-import { adminJeepneyRouter, driverJeepneyRouter, jeepneyRouter } from "./jeepney.routes";
-import { profileRouter } from "./profile.routes";
-import { adminRouteRouter, routeRouter } from "./route.routes";
-import { adminScheduleRouter, driverScheduleRouter, scheduleRouter } from "./schedule.routes";
-import { uploadRouter } from "./upload.routes";
+import { adminRouter } from "./admin.routes.js";
+import { authRouter } from "./auth.routes.js";
+import { adminBookingRouter, bookingRouter, driverBookingRouter } from "./booking.routes.js";
+import { adminJeepneyRouter, driverJeepneyRouter, jeepneyRouter } from "./jeepney.routes.js";
+import { profileRouter } from "./profile.routes.js";
+import { adminRouteRouter, routeRouter } from "./route.routes.js";
+import { adminScheduleRouter, driverScheduleRouter, scheduleRouter } from "./schedule.routes.js";
+import { uploadRouter } from "./upload.routes.js";
 
 export const apiV1Router = Router();
 
