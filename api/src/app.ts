@@ -2,10 +2,10 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import { env } from "./config/env";
-import { errorHandler } from "./middleware/error-handler";
-import { requestId } from "./middleware/request-id";
-import { apiV1Router } from "./routes";
+import { env } from "./config/env.js";
+import { errorHandler } from "./middleware/error-handler.js";
+import { requestId } from "./middleware/request-id.js";
+import { apiV1Router } from "./routes/index.js";
 
 export const app = express();
 
