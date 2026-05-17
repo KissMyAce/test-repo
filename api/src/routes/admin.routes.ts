@@ -4,10 +4,10 @@ import {
   listApprovedDrivers,
   listPendingDrivers,
   rejectDriver,
-} from "../controllers/admin.controller";
-import { requireAuth, requireRole } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { approveDriverSchema, rejectDriverSchema } from "../validators/admin.validator";
+} from "../controllers/admin.controller.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
+import { validate } from "../middleware/validate.js";
+import { approveDriverSchema, rejectDriverSchema } from "../validators/admin.validator.js";
 
 export const adminRouter = Router();
 

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { env } from "./env";
+import { env } from "./env.js";
 
 export const connectDb = async () => {
   // 🚨 This correctly catches BOTH undefined variables and empty strings ("")
