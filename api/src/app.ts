@@ -1,3 +1,4 @@
+// app.ts
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -7,7 +8,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { requestId } from "./middleware/request-id.js";
 import { apiV1Router } from "./routes/index.js";
 
-export const app = express();
+const app = express(); // create instance
 
 app.use(requestId);
 app.use(helmet());
@@ -32,3 +33,5 @@ app.use((_req, res) => {
 });
 
 app.use(errorHandler);
+
+export default app; // <-- default export
