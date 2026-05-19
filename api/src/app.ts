@@ -8,7 +8,7 @@ import { errorHandler } from "./middleware/error-handler.js";
 import { requestId } from "./middleware/request-id.js";
 import { apiV1Router } from "./routes/index.js";
 
-const app = express(); // create instance
+const app = express();
 
 app.use(requestId);
 app.use(helmet());
@@ -34,4 +34,4 @@ app.use((_req, res) => {
 
 app.use(errorHandler);
 
-export default app; // <-- default export
+export default app; // Vercel reads this for serverless functions
