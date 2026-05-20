@@ -1,4 +1,4 @@
-import { apiClient, API_BASE } from "@/lib/api-client";
+import { apiClient } from "@/lib/api-client";
 import { AuthUser } from "./types";
 
 
@@ -139,14 +139,14 @@ export interface SchedulesListResponse {
 }
 
 export const loginRequest = (payload: { email: string; password: string }) =>
-  apiClient.post<AuthSuccessResponse>(`${API_BASE}/auth/login`, payload);
+  apiClient.post<AuthSuccessResponse>(`/auth/login`, payload);
 
 export const registerPassengerRequest = (payload: {
   name: string;
   email: string;
   password: string;
   phone?: string;
-}) => apiClient.post<AuthSuccessResponse>(`${API_BASE}/auth/register/passenger`, payload);
+}) => apiClient.post<AuthSuccessResponse>(`/auth/register/passenger`, payload);
 
 export const registerDriverRequest = (payload: {
   name: string;
@@ -157,28 +157,28 @@ export const registerDriverRequest = (payload: {
   licenseFileKey: string;
   nbiFileKey?: string;
   profileImageKey?: string;
-}) => apiClient.post<AuthSuccessResponse>(`${API_BASE}/auth/register/driver`, payload);
+}) => apiClient.post<AuthSuccessResponse>(`/auth/register/driver`, payload);
 
 export const forgotPasswordRequest = (payload: { email: string }) =>
-  apiClient.post(`${API_BASE}/auth/forgot-password`, payload);
+  apiClient.post(`/auth/forgot-password`, payload);
 
 export const resetPasswordRequest = (payload: { token: string; password: string }) =>
-  apiClient.post(`${API_BASE}/auth/reset-password`, payload);
+  apiClient.post(`/auth/reset-password`, payload);
 
 export const presignUploadRequest = (payload: {
   fileName: string;
   contentType: string;
   fileSize: number;
   purpose: "avatar" | "driver-license" | "driver-nbi" | "driver-photo";
-}) => apiClient.post<UploadPresignResponse>(`${API_BASE}/uploads/presign`, payload);
+}) => apiClient.post<UploadPresignResponse>(`/uploads/presign`, payload);
 
 export const commitUploadRequest = (payload: {
   objectKey: string;
   purpose: "avatar" | "driver-license" | "driver-nbi" | "driver-photo";
-}) => apiClient.post<UploadCommitResponse>(`${API_BASE}/uploads/commit`, payload);
+}) => apiClient.post<UploadCommitResponse>(`/uploads/commit`, payload);
 
 export const createDriverUploadSessionRequest = (payload: { email: string }) =>
-  apiClient.post<DriverUploadSessionResponse>(`${API_BASE}/uploads/preregister/session`, payload);
+  apiClient.post<DriverUploadSessionResponse>(`/uploads/preregister/session`, payload);
 
 export const preregisterPresignUploadRequest = (payload: {
   uploadSessionToken: string;
@@ -186,44 +186,44 @@ export const preregisterPresignUploadRequest = (payload: {
   contentType: string;
   fileSize: number;
   purpose: "driver-license" | "driver-nbi" | "driver-photo";
-}) => apiClient.post<UploadPresignResponse>(`${API_BASE}/uploads/preregister/presign`, payload);
+}) => apiClient.post<UploadPresignResponse>(`/uploads/preregister/presign`, payload);
 
 export const preregisterCommitUploadRequest = (payload: {
   uploadSessionToken: string;
   objectKey: string;
   purpose: "driver-license" | "driver-nbi" | "driver-photo";
-}) => apiClient.post<UploadCommitResponse>(`${API_BASE}/uploads/preregister/commit`, payload);
+}) => apiClient.post<UploadCommitResponse>(`/uploads/preregister/commit`, payload);
 
-export const getProfileMeRequest = () => apiClient.get<ProfileMeResponse>(`${API_BASE}/profile/me`);
+export const getProfileMeRequest = () => apiClient.get<ProfileMeResponse>(`/profile/me`);
 
 export const updateProfileMeRequest = (payload: { name?: string; phone?: string }) =>
-  apiClient.patch<ProfileMeResponse>(`${API_BASE}/profile/me`, payload);
+  apiClient.patch<ProfileMeResponse>(`/profile/me`, payload);
 
 export const changeProfilePasswordRequest = (payload: {
   currentPassword: string;
   newPassword: string;
-}) => apiClient.patch(`${API_BASE}/profile/me/password`, payload);
+}) => apiClient.patch(`/profile/me/password`, payload);
 
 export const getProfileAvatarUploadUrlRequest = (payload: {
   fileName: string;
   contentType: string;
   fileSize: number;
-}) => apiClient.post<UploadPresignResponse>(`${API_BASE}/profile/me/avatar/upload-url`, payload);
+}) => apiClient.post<UploadPresignResponse>(`/profile/me/avatar/upload-url`, payload);
 
 export const commitProfileAvatarUploadRequest = (payload: { objectKey: string }) =>
-  apiClient.post<ProfileMeResponse | UploadCommitResponse>(`${API_BASE}/profile/me/avatar/commit`, payload);
+  apiClient.post<ProfileMeResponse | UploadCommitResponse>(`/profile/me/avatar/commit`, payload);
 
 export const getPendingDriversRequest = () =>
-  apiClient.get<PendingDriversResponse | PendingDriverProfile[]>(`${API_BASE}/admin/drivers/pending`);
+  apiClient.get<PendingDriversResponse | PendingDriverProfile[]>(`/admin/drivers/pending`);
 
 export const getApprovedDriversRequest = () =>
-  apiClient.get<PendingDriversResponse | PendingDriverProfile[]>(`${API_BASE}/admin/drivers/approved`);
+  apiClient.get<PendingDriversResponse | PendingDriverProfile[]>(`/admin/drivers/approved`);
 
 export const approveDriverRequest = (userId: string, payload?: { reviewNotes?: string }) =>
-  apiClient.patch(`${API_BASE}/admin/drivers/${userId}/approve`, payload || {});
+  apiClient.patch(`/admin/drivers/${userId}/approve`, payload || {});
 
 export const rejectDriverRequest = (userId: string, payload: { reason: string }) =>
-  apiClient.patch(`${API_BASE}/admin/drivers/${userId}/reject`, payload);
+  apiClient.patch(`/admin/drivers/${userId}/reject`, payload);
 
 export const getRoutesRequest = (query?: { search?: string; isActive?: boolean }) => {
   const params = new URLSearchParams();
@@ -234,7 +234,7 @@ export const getRoutesRequest = (query?: { search?: string; isActive?: boolean }
     params.set("isActive", String(query.isActive));
   }
   const suffix = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<RoutesListResponse>(`${API_BASE}/routes${suffix}`);
+  return apiClient.get<RoutesListResponse>(`/routes${suffix}`);
 };
 
 export const createRouteRequest = (payload: {
@@ -243,7 +243,7 @@ export const createRouteRequest = (payload: {
   destination: string;
   baseFare: number;
   isActive?: boolean;
-}) => apiClient.post<{ route: RouteData }>(`${API_BASE}/admin/routes`, payload);
+}) => apiClient.post<{ route: RouteData }>(`/admin/routes`, payload);
 
 export const updateRouteRequest = (
   routeId: string,
@@ -254,10 +254,10 @@ export const updateRouteRequest = (
     baseFare?: number;
     isActive?: boolean;
   }
-) => apiClient.patch<{ route: RouteData }>(`${API_BASE}/admin/routes/${routeId}`, payload);
+) => apiClient.patch<{ route: RouteData }>(`/admin/routes/${routeId}`, payload);
 
 export const deleteRouteRequest = (routeId: string) =>
-  apiClient.delete<{ message: string }>(`${API_BASE}/admin/routes/${routeId}`);
+  apiClient.delete<{ message: string }>(`/admin/routes/${routeId}`);
 
 export const getJeepneysRequest = (query?: {
   search?: string;
@@ -271,7 +271,7 @@ export const getJeepneysRequest = (query?: {
   if (query?.driverId) params.set("driverId", query.driverId);
   if (query?.status) params.set("status", query.status);
   const suffix = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<JeepneysListResponse>(`${API_BASE}/jeepneys${suffix}`);
+  return apiClient.get<JeepneysListResponse>(`/jeepneys${suffix}`);
 };
 
 export const getAdminJeepneysRequest = (query?: {
@@ -290,7 +290,7 @@ export const getAdminJeepneysRequest = (query?: {
 };
 
 export const getJeepneyByIdRequest = (jeepneyId: string) =>
-  apiClient.get<{ jeepney: JeepneyData }>(`${API_BASE}/jeepneys/${jeepneyId}`);
+  apiClient.get<{ jeepney: JeepneyData }>(`/jeepneys/${jeepneyId}`);
 
 export const createJeepneyRequest = (payload: {
   code: string;
@@ -300,7 +300,7 @@ export const createJeepneyRequest = (payload: {
   capacity: number;
   status?: "active" | "inactive";
   photoKey?: string;
-}) => apiClient.post<{ jeepney: JeepneyData }>(`${API_BASE}/admin/jeepneys`, payload);
+}) => apiClient.post<{ jeepney: JeepneyData }>(`/admin/jeepneys`, payload);
 
 export const updateJeepneyRequest = (
   jeepneyId: string,
@@ -345,11 +345,11 @@ export const getSchedulesRequest = (query?: {
   if (query?.departureFrom) params.set("departureFrom", query.departureFrom);
   if (query?.departureTo) params.set("departureTo", query.departureTo);
   const suffix = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<SchedulesListResponse>(`${API_BASE}/schedules${suffix}`);
+  return apiClient.get<SchedulesListResponse>(`/schedules${suffix}`);
 };
 
 export const getScheduleByIdRequest = (scheduleId: string) =>
-  apiClient.get<{ schedule: ScheduleData }>(`${API_BASE}/schedules/${scheduleId}`);
+  apiClient.get<{ schedule: ScheduleData }>(`/schedules/${scheduleId}`);
 
 export const getAdminSchedulesRequest = (query?: {
   routeId?: string;
@@ -367,7 +367,7 @@ export const getAdminSchedulesRequest = (query?: {
   if (query?.departureFrom) params.set("departureFrom", query.departureFrom);
   if (query?.departureTo) params.set("departureTo", query.departureTo);
   const suffix = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<SchedulesListResponse>(`${API_BASE}/admin/schedules${suffix}`);
+  return apiClient.get<SchedulesListResponse>(`/admin/schedules${suffix}`);
 };
 
 export const createAdminScheduleRequest = (payload: {
@@ -376,7 +376,7 @@ export const createAdminScheduleRequest = (payload: {
   departureAt: string;
   arrivalAt: string;
   status?: ScheduleStatus;
-}) => apiClient.post<{ schedule: ScheduleData }>(`${API_BASE}/admin/schedules`, payload);
+}) => apiClient.post<{ schedule: ScheduleData }>(`/admin/schedules`, payload);
 
 export const updateAdminScheduleRequest = (
   scheduleId: string,
@@ -406,7 +406,7 @@ export const getMySchedulesRequest = (query?: {
   if (query?.departureFrom) params.set("departureFrom", query.departureFrom);
   if (query?.departureTo) params.set("departureTo", query.departureTo);
   const suffix = params.toString() ? `?${params.toString()}` : "";
-  return apiClient.get<SchedulesListResponse>(`${API_BASE}/driver/schedules/me${suffix}`);
+  return apiClient.get<SchedulesListResponse>(`/driver/schedules/me${suffix}`);
 };
 
 export const createMyScheduleRequest = (payload: {
@@ -414,7 +414,7 @@ export const createMyScheduleRequest = (payload: {
   departureAt: string;
   arrivalAt: string;
   status?: ScheduleStatus;
-}) => apiClient.post<{ schedule: ScheduleData }>(`${API_BASE}/driver/schedules/me`, payload);
+}) => apiClient.post<{ schedule: ScheduleData }>(`/driver/schedules/me`, payload);
 
 export const updateMyScheduleRequest = (
   scheduleId: string,
