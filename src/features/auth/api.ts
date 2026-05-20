@@ -350,7 +350,7 @@ export const getSchedulesRequest = (query?: {
 };
 
 export const getScheduleByIdRequest = (scheduleId: string) =>
-  apiClient.get<{ schedule: ScheduleData }>(`/${API_BASE}/schedules/${scheduleId}`);
+  apiClient.get<{ schedule: ScheduleData }>(`${API_BASE}/schedules/${scheduleId}`);
 
 export const getAdminSchedulesRequest = (query?: {
   routeId?: string;
