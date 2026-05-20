@@ -6,6 +6,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:prod": "node dist/server.js",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:routes:cebu": "tsx src/scripts/seed-routes-cebu.ts",
