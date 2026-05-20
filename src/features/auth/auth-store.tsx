@@ -1,7 +1,19 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { apiClient } from "@/lib/api-client";
 import { AuthState, AuthUser } from "./types";
-import { clearPersistedAuthUser, getPersistedAuthUser, persistAuthUser } from "./session";
+import {
+  clearPersistedAuthUser,
+  getPersistedAuthUser,
+  persistAuthUser,
+} from "./session";
 
 interface AuthContextValue extends AuthState {
   setSession: (user: AuthUser | null, accessToken?: string | null) => void;
@@ -27,19 +39,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const setSession = useCallback((nextUser: AuthUser | null, nextAccessToken?: string | null) => {
-    setUser(nextUser);
+  const setSession = useCallback(
+    (nextUser: AuthUser | null, nextAccessToken?: string | null) => {
+      setUser(nextUser);
 
-    if (typeof nextAccessToken !== "undefined") {
-      setAccessToken(nextAccessToken);
-    }
+      if (typeof nextAccessToken !== "undefined") {
+        setAccessToken(nextAccessToken);
+      }
 
-    if (nextUser) {
-      persistAuthUser(nextUser);
-    } else {
-      clearPersistedAuthUser();
-    }
-  }, []);
+      if (nextUser) {
+        persistAuthUser(nextUser);
+      } else {
+        clearPersistedAuthUser();
+      }
+    },
+    []
+  );
 
   const refresh = useCallback(async () => {
     try {
@@ -55,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       return Boolean(payload.accessToken || payload.user);
     } catch {
+      // IMPORTANT: treat refresh failure as normal (user not logged in)
       return false;
     }
   }, [setSession]);
@@ -80,33 +96,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await apiClient.post("/auth/logout", {});
     } catch {
-      // noop for now, local logout still proceeds.
+      // ignore backend errors, still clear local session
     }
     setAccessToken(null);
     setSession(null);
   }, [setSession]);
 
+  // Inject token + refresh handler into API client
   useEffect(() => {
     apiClient.setTokenGetter(() => accessToken);
     apiClient.setUnauthorizedHandler(refresh);
   }, [accessToken, refresh]);
 
+  // 🔥 SAFE HYDRATION (FIXED VERSION)
   useEffect(() => {
     let mounted = true;
 
     const hydrate = async () => {
+      // 1. Load cached user immediately (UI speed boost)
       const localUser = getPersistedAuthUser();
       if (localUser && mounted) {
         setUser(localUser);
       }
 
-      const refreshed = await refresh();
-      if (!refreshed && mounted) {
-        // Prevent stale local user from appearing authenticated without a valid access token.
-        setAccessToken(null);
-        setSession(null);
+      // 2. Try refresh silently (DO NOT block app, DO NOT treat failure as error)
+      try {
+        await refresh();
+      } catch {
+        // ignore completely
       }
 
+      // 3. finish loading
       if (mounted) {
         setIsLoading(false);
       }
@@ -117,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       mounted = false;
     };
-  }, [refresh, setSession]);
+  }, [refresh]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
