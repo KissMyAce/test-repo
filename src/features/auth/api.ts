@@ -1,7 +1,6 @@
 import { apiClient } from "@/lib/api-client";
 import { AuthUser } from "./types";
 
-const API_BASE = "https://test-repo-1-m2f3.onrender.com/api/v1";
 
 export interface AuthSuccessResponse {
   user: AuthUser;
