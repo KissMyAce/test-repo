@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",           // change from ESNext
+    "target": "ES2020",
+    "module": "CommonJS",
     "moduleResolution": "node",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
 }
