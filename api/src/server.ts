@@ -1,6 +1,15 @@
 // server.ts
-import app from "./app";        // no .js extension
+import app from "./app";              // your Express app
 import { connectDb } from "./config/db";
+import cors from "cors";
+
+// Add CORS middleware before connecting routes
+app.use(
+  cors({
+    origin: "https://kissmyace-test-repo.vercel.app", // your frontend URL
+    credentials: true, // allow cookies/auth headers if needed
+  })
+);
 
 connectDb()
   .then(() => {
