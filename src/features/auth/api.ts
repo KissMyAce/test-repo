@@ -1,4 +1,4 @@
-import { apiClient } from "@/lib/api-client";
+import { apiClient, API_BASE, ApiError } from "@/lib/api-client";
 import { AuthUser } from "./types";
 
 
@@ -179,6 +179,36 @@ export const commitUploadRequest = (payload: {
 
 export const createDriverUploadSessionRequest = (payload: { email: string }) =>
   apiClient.post<DriverUploadSessionResponse>(`/uploads/preregister/session`, payload);
+
+export const uploadPreregisterFileRequest = async (payload: {
+  uploadSessionToken: string;
+  fileName: string;
+  contentType: string;
+  purpose: "driver-license" | "driver-nbi" | "driver-photo";
+  file: File;
+}) => {
+  const query = new URLSearchParams({
+    uploadSessionToken: payload.uploadSessionToken,
+    purpose: payload.purpose,
+    fileName: payload.fileName,
+  });
+
+  const response = await fetch(`${API_BASE}/uploads/preregister/upload?${query.toString()}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": payload.contentType,
+    },
+    body: payload.file,
+  });
+
+  if (!response.ok) {
+    const errorPayload = await response.text();
+    throw new ApiError(response.status, errorPayload, `Upload failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as { objectKey: string };
+};
 
 export const preregisterPresignUploadRequest = (payload: {
   uploadSessionToken: string;

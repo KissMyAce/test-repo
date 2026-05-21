@@ -60,3 +60,20 @@ export const createPresignedUploadUrl = async (params: {
     objectKey: params.objectKey,
   };
 };
+
+export const uploadObjectToR2 = async (params: {
+  objectKey: string;
+  contentType: string;
+  body: Buffer | Uint8Array | Blob | string;
+}) => {
+  const client = getR2Client();
+
+  const command = new PutObjectCommand({
+    Bucket: env.r2Bucket,
+    Key: params.objectKey,
+    Body: params.body,
+    ContentType: params.contentType,
+  });
+
+  await client.send(command);
+};

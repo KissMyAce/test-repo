@@ -1,3 +1,4 @@
+import express from "express";
 import { Router } from "express";
 import {
   commitPreRegisterUpload,
@@ -5,6 +6,7 @@ import {
   createDriverUploadSession,
   presignPreRegisterUpload,
   presignUpload,
+  uploadPreregisterFile,
 } from "../controllers/upload.controller";
 import { requireAuth } from "../middleware/auth";
 import { validate } from "../middleware/validate";
@@ -27,6 +29,14 @@ uploadRouter.post(
   "/preregister/presign",
   validate(preregisterPresignUploadSchema),
   presignPreRegisterUpload
+);
+uploadRouter.put(
+  "/preregister/upload",
+  express.raw({
+    type: ["image/*", "application/pdf", "application/octet-stream"],
+    limit: "5mb",
+  }),
+  uploadPreregisterFile
 );
 uploadRouter.post(
   "/preregister/commit",

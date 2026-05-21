@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   createDriverUploadSessionRequest,
   preregisterCommitUploadRequest,
-  preregisterPresignUploadRequest,
   registerDriverRequest,
+  uploadPreregisterFileRequest,
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 
@@ -116,31 +116,21 @@ const RegisterDriver = () => {
     purpose: Exclude<UploadPurpose, "avatar">,
     uploadSessionToken: string
   ) => {
-    const presign = await preregisterPresignUploadRequest({
+    const uploadResult = await uploadPreregisterFileRequest({
       uploadSessionToken,
       fileName: file.name,
       contentType: file.type,
-      fileSize: file.size,
       purpose,
+      file,
     });
-
-    const uploadResponse = await fetch(presign.uploadUrl, {
-      method: "PUT",
-      headers: presign.headers,
-      body: file,
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error(`Upload failed for ${file.name}`);
-    }
 
     await preregisterCommitUploadRequest({
       uploadSessionToken,
-      objectKey: presign.objectKey,
+      objectKey: uploadResult.objectKey,
       purpose,
     });
 
-    return presign.objectKey;
+    return uploadResult.objectKey;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

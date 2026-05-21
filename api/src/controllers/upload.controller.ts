@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import { Request, Response } from "express";
-import { buildScopedObjectKey, createPresignedUploadUrl } from "../services/r2.service";
+import {
+  buildScopedObjectKey,
+  createPresignedUploadUrl,
+  uploadObjectToR2,
+} from "../services/r2.service";
 import { AppError } from "../utils/app-error";
 import { asyncHandler } from "../utils/async-handler";
 import {
@@ -66,6 +70,41 @@ export const presignPreRegisterUpload = asyncHandler(async (req: Request, res: R
   const signed = await createPresignedUploadUrl({ objectKey, contentType });
 
   res.status(200).json(signed);
+});
+
+export const uploadPreregisterFile = asyncHandler(async (req: Request, res: Response) => {
+  const uploadSessionToken = String(req.query.uploadSessionToken || "");
+  const purpose = String(req.query.purpose || "") as "driver-license" | "driver-nbi" | "driver-photo";
+  const fileName = String(req.query.fileName || "");
+  const contentType = String(req.headers["content-type"] || "");
+
+  if (!uploadSessionToken || !purpose || !fileName || !contentType) {
+    throw new AppError(400, "INVALID_UPLOAD", "Missing upload metadata");
+  }
+
+  if (!["driver-license", "driver-nbi", "driver-photo"].includes(purpose)) {
+    throw new AppError(400, "INVALID_PURPOSE", "Invalid upload purpose");
+  }
+
+  if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+    throw new AppError(400, "INVALID_FILE", "File upload body is required");
+  }
+
+  let session;
+  try {
+    session = verifyDriverUploadSessionToken(uploadSessionToken);
+  } catch {
+    throw new AppError(401, "UNAUTHORIZED", "Invalid upload session token");
+  }
+
+  const objectKey = buildPreregisterObjectKey(session.sid, purpose, fileName);
+  await uploadObjectToR2({
+    objectKey,
+    contentType,
+    body: req.body,
+  });
+
+  res.status(200).json({ objectKey });
 });
 
 export const commitUpload = asyncHandler(async (req: Request, res: Response) => {
