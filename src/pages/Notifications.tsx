@@ -3,7 +3,7 @@ import { Bell, Ticket, CreditCard, Calendar, Info, CheckCheck } from "lucide-rea
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { notifications as initialNotifications, type Notification } from "@/data/mock-data";
+import { type Notification } from "@/data/mock-data";
 
 const typeIcons: Record<Notification["type"], typeof Bell> = {
   booking: Ticket,
@@ -20,7 +20,7 @@ const typeColors: Record<Notification["type"], string> = {
 };
 
 const Notifications = () => {
-  const [items, setItems] = useState(initialNotifications);
+  const [items, setItems] = useState<Notification[]>([]);
   const unreadCount = items.filter((n) => !n.read).length;
 
   const markAllRead = () => {

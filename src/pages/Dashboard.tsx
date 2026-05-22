@@ -19,14 +19,10 @@ const featureCards = [
   { icon: Ticket, label: "Booking", to: "/my-bookings" },
 ];
 
-const notifications = [
-  { id: 1, text: "Route 12 delayed by 10 mins", time: "2m ago" },
-  { id: 2, text: "Booking confirmed for tomorrow", time: "1h ago" },
-  { id: 3, text: "Payment received — ₱45.00", time: "3h ago" },
-];
+const notifications: Array<{ id: number; text: string; time: string }> = [];
 
 const Dashboard = () => {
-  const hasUpcoming = true;
+  const hasUpcoming = false;
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
@@ -58,35 +54,26 @@ const Dashboard = () => {
       </div>
 
       {/* Upcoming Booking */}
-      {hasUpcoming && (
-        <div className="bg-card rounded-2xl p-5 card-shadow animate-slide-up" style={{ animationDelay: "0.35s" }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-foreground">Upcoming Booking</h3>
-            <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full font-medium">
-              Active
-            </span>
+      <div className="bg-card rounded-2xl p-5 card-shadow animate-slide-up" style={{ animationDelay: "0.35s" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-foreground">Upcoming Booking</h3>
+          <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full font-medium">
+            None yet
+          </span>
+        </div>
+        <div className="space-y-4 text-sm text-center">
+          <div className="mx-auto w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
+            <Bell className="w-6 h-6 text-primary" />
           </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span>SM City → Ayala Terminal</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="w-4 h-4 text-primary" />
-              <span>Today, 3:30 PM</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Users className="w-4 h-4 text-primary" />
-              <span>2 seats reserved</span>
-            </div>
-          </div>
-          <Link to="/my-bookings">
-            <Button variant="outline" size="sm" className="mt-4 rounded-xl w-full">
-              View Booking <ChevronRight className="w-4 h-4 ml-1" />
+          <p className="font-semibold text-foreground">No upcoming rides</p>
+          <p className="text-muted-foreground">You don’t have any bookings yet. Book a ride to get started.</p>
+          <Link to="/booking">
+            <Button variant="outline" size="sm" className="mt-2 rounded-xl px-6">
+              Book a Ride
             </Button>
           </Link>
         </div>
-      )}
+      </div>
 
       {/* Notifications Strip */}
       <div className="animate-slide-up" style={{ animationDelay: "0.45s" }}>
@@ -96,23 +83,9 @@ const Dashboard = () => {
             View all
           </Link>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-          {notifications.map((n) => (
-            <div
-              key={n.id}
-              className="flex-shrink-0 w-64 bg-card rounded-xl p-4 card-shadow"
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-8 h-8 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-                  <Bell className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-foreground font-medium leading-snug">{n.text}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{n.time}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="rounded-2xl border border-border bg-card p-6 text-center">
+          <p className="font-semibold text-foreground">No notifications yet</p>
+          <p className="text-muted-foreground text-sm mt-2">You’ll see updates here once you create a booking or receive a payment confirmation.</p>
         </div>
       </div>
     </div>

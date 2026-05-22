@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { bookings, type Booking } from "@/data/mock-data";
+import { type Booking } from "@/data/mock-data";
 
 const statusBanner: Record<Booking["status"], { bg: string; text: string }> = {
   pending: { bg: "bg-[hsl(38_92%_90%)]", text: "text-[hsl(38_92%_35%)]" },
@@ -19,7 +19,7 @@ const BookingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [cancelOpen, setCancelOpen] = useState(false);
-  const booking = bookings.find((b) => b.id === id);
+  const booking = undefined as Booking | undefined;
 
   if (!booking) {
     return (

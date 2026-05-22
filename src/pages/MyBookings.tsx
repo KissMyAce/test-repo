@@ -4,9 +4,10 @@ import { Ticket, MapPin, Clock, Users, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { bookings, type Booking } from "@/data/mock-data";
+import { type Booking } from "@/data/mock-data";
 
 const statusTabs = ["all", "pending", "confirmed", "completed", "cancelled"] as const;
+const bookings: Booking[] = [];
 
 const statusColors: Record<Booking["status"], string> = {
   pending: "bg-[hsl(38_92%_90%)] text-[hsl(38_92%_35%)]",
