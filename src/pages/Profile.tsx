@@ -240,9 +240,9 @@ const Profile = () => {
   };
 
   const stats = [
-    { icon: Ticket, label: "Total Rides", value: "24" },
-    { icon: CreditCard, label: "Total Spent", value: "₱1,080" },
-    { icon: Calendar, label: "Member Since", value: "Jan 2026" },
+    { icon: Ticket, label: "Total Rides", value: "—" },
+    { icon: CreditCard, label: "Total Spent", value: "—" },
+    { icon: Calendar, label: "Member Since", value: "—" },
   ];
 
   if (loadingProfile) {
