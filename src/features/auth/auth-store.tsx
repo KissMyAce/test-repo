@@ -119,11 +119,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(localUser);
       }
 
-      // 2. Try refresh silently (DO NOT block app, DO NOT treat failure as error)
-      try {
-        await refresh();
-      } catch {
-        // ignore completely
+      // 2. Try refresh silently. If refresh fails, clear stale cached user.
+      const didRefresh = await refresh();
+      if (!didRefresh && mounted) {
+        setSession(null, null);
       }
 
       // 3. finish loading
