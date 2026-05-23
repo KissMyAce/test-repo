@@ -57,6 +57,25 @@ export interface PendingDriversResponse {
   drivers?: PendingDriverProfile[];
 }
 
+export interface AdminDriverProfile {
+  licenseNumber?: string;
+  licenseFileKey?: string;
+  nbiFileKey?: string | null;
+  approvalStatus?: "pending" | "approved" | "rejected";
+  createdAt?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  role: "passenger" | "driver" | "admin";
+  status: "active" | "pending_verification" | "suspended";
+  createdAt?: string;
+  driverProfile?: AdminDriverProfile | null;
+}
+
 export interface RouteData {
   id: string;
   name: string;
@@ -248,6 +267,47 @@ export const getPendingDriversRequest = () =>
 
 export const getApprovedDriversRequest = () =>
   apiClient.get<PendingDriversResponse | PendingDriverProfile[]>(`/admin/drivers/approved`);
+
+export const getAdminUsersRequest = (query?: { search?: string; role?: "passenger" | "driver" }) => {
+  const params = new URLSearchParams();
+  if (query?.search?.trim()) params.set("search", query.search.trim());
+  if (query?.role) params.set("role", query.role);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiClient.get<{ users: AdminUser[] }>(`/admin/users${suffix}`);
+};
+
+export const createAdminUserRequest = (payload: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role: "passenger" | "driver";
+  licenseNumber?: string;
+  licenseFileKey?: string;
+  nbiFileKey?: string;
+}) => apiClient.post<{ user: AdminUser }>(`/admin/users`, payload);
+
+export const updateAdminUserRequest = (
+  userId: string,
+  payload: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    status?: "active" | "pending_verification" | "suspended";
+    driverProfile?: {
+      licenseNumber?: string;
+      licenseFileKey?: string;
+      nbiFileKey?: string;
+    };
+  }
+) => apiClient.patch<{ message: string; user: AdminUser }>(`/admin/users/${userId}`, payload);
+
+export const deleteAdminUserRequest = (userId: string) =>
+  apiClient.delete<{ message: string }>(`/admin/users/${userId}`);
+
+export const getDriverDocumentUrlRequest = (objectKey: string) =>
+  apiClient.get<{ url: string }>(`/admin/driver-doc-url?objectKey=${encodeURIComponent(objectKey)}`);
 
 export const approveDriverRequest = (userId: string, payload?: { reviewNotes?: string }) =>
   apiClient.patch(`/admin/drivers/${userId}/approve`, payload || {});

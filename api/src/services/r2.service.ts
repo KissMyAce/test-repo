@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from "crypto";
 import { env } from "../config/env";
@@ -59,6 +59,22 @@ export const createPresignedUploadUrl = async (params: {
     uploadUrl,
     objectKey: params.objectKey,
   };
+};
+
+export const createSignedGetUrl = async (params: {
+  objectKey: string;
+  expiresInSeconds?: number;
+}) => {
+  const client = getR2Client();
+
+  const command = new GetObjectCommand({
+    Bucket: env.r2Bucket,
+    Key: params.objectKey,
+  });
+
+  const url = await getSignedUrl(client, command, { expiresIn: params.expiresInSeconds ?? 60 * 5 });
+
+  return { url };
 };
 
 export const uploadObjectToR2 = async (params: {

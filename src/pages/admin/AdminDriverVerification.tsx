@@ -1,15 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, ShieldAlert, X } from "lucide-react";
+import { Check, Eye, Loader2, Plus, Pencil, ShieldAlert, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   approveDriverRequest,
+  createAdminUserRequest,
+  deleteAdminUserRequest,
+  getAdminUsersRequest,
+  getDriverDocumentUrlRequest,
   getPendingDriversRequest,
+  updateAdminUserRequest,
   PendingDriverProfile,
-  rejectDriverRequest,
+  AdminUser,
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 import { toast } from "@/hooks/use-toast";
@@ -21,34 +30,74 @@ const normalizePendingDrivers = (
   return payload.drivers || [];
 };
 
-const resolveUserId = (driver: PendingDriverProfile) =>
-  driver.userId || driver.user?.id || "";
+const resolveUserId = (driver: PendingDriverProfile) => driver.userId || driver.user?.id || "";
 
-const resolveName = (driver: PendingDriverProfile) =>
-  driver.user?.name || "Unnamed driver";
+const resolveName = (driver: PendingDriverProfile) => driver.user?.name || "Unnamed driver";
 
-const resolveEmail = (driver: PendingDriverProfile) =>
-  driver.user?.email || "no-email";
+const resolveEmail = (driver: PendingDriverProfile) => driver.user?.email || "no-email";
 
-const resolvePhone = (driver: PendingDriverProfile) =>
-  driver.user?.phone || "No phone";
+const resolvePhone = (driver: PendingDriverProfile) => driver.user?.phone || "No phone";
+
+const defaultFormState = {
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
+  role: "passenger" as "passenger" | "driver",
+  status: "active" as "active" | "pending_verification" | "suspended",
+  licenseNumber: "",
+  licenseFileKey: "",
+  nbiFileKey: "",
+};
 
 const AdminDriverVerification = () => {
+  const [activeTab, setActiveTab] = useState<"passengers" | "drivers" | "queue">("passengers");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<PendingDriverProfile[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [form, setForm] = useState(defaultFormState);
   const [reasonByUserId, setReasonByUserId] = useState<Record<string, string>>({});
-  const [drivers, setDrivers] = useState<PendingDriverProfile[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const pendingDrivers = useMemo(
-    () => drivers.filter((d) => (d.approvalStatus || "pending") === "pending"),
-    [drivers]
+  const filteredPendingDrivers = useMemo(
+    () =>
+      pendingDrivers.filter((driver) => {
+        if (!search.trim()) return true;
+        const text = search.toLowerCase();
+        return [resolveName(driver), resolveEmail(driver), resolvePhone(driver), driver.licenseNumber || "", driver.licenseFileKey || "", driver.nbiFileKey || ""].some((value) =>
+          value.toLowerCase().includes(text)
+        );
+      }),
+    [pendingDrivers, search]
   );
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const role = activeTab === "passengers" ? "passenger" : "driver";
+      const { users } = await getAdminUsersRequest({ search: search.trim(), role });
+      setUsers(users);
+    } catch (error) {
+      let description = "Unable to load users.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Load failed", description, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadPendingDrivers = async () => {
     setLoading(true);
     try {
       const payload = await getPendingDriversRequest();
-      setDrivers(normalizePendingDrivers(payload));
+      setPendingDrivers(normalizePendingDrivers(payload));
     } catch (error) {
       let description = "Unable to load pending drivers.";
       if (error instanceof ApiError && error.status >= 500) {
@@ -61,8 +110,121 @@ const AdminDriverVerification = () => {
   };
 
   useEffect(() => {
-    void loadPendingDrivers();
-  }, []);
+    if (activeTab === "queue") {
+      void loadPendingDrivers();
+    } else {
+      void loadUsers();
+    }
+  }, [activeTab, search]);
+
+  const openAdd = () => {
+    setForm(defaultFormState);
+    setAddOpen(true);
+  };
+
+  const openEdit = (user: AdminUser) => {
+    setSelectedUser(user);
+    setForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      password: "",
+      role: user.role === "driver" ? "driver" : "passenger",
+      status: user.status,
+      licenseNumber: user.driverProfile?.licenseNumber || "",
+      licenseFileKey: user.driverProfile?.licenseFileKey || "",
+      nbiFileKey: user.driverProfile?.nbiFileKey || "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    setSaving(true);
+    try {
+      if (selectedUser) {
+        await updateAdminUserRequest(selectedUser.id, {
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          status: form.status,
+          ...(form.role === "driver"
+            ? {
+                driverProfile: {
+                  licenseNumber: form.licenseNumber || undefined,
+                  licenseFileKey: form.licenseFileKey || undefined,
+                  nbiFileKey: form.nbiFileKey || undefined,
+                },
+              }
+            : {}),
+          ...(form.password ? { password: form.password } : {}),
+        });
+        toast({ title: "User updated", description: "The user record has been saved." });
+      } else {
+        await createAdminUserRequest({
+          name: form.name,
+          email: form.email,
+          phone: form.phone || undefined,
+          password: form.password,
+          role: form.role,
+          licenseNumber: form.role === "driver" ? form.licenseNumber || undefined : undefined,
+          licenseFileKey: form.role === "driver" ? form.licenseFileKey || undefined : undefined,
+          nbiFileKey: form.role === "driver" ? form.nbiFileKey || undefined : undefined,
+        });
+        toast({ title: "User created", description: "A new user has been created." });
+      }
+
+      setSelectedUser(null);
+      setAddOpen(false);
+      setEditOpen(false);
+      void loadUsers();
+    } catch (error) {
+      let description = "Unable to save user.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Save failed", description, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (user: AdminUser) => {
+    const confirmed = window.confirm(`Delete ${user.name}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    setBusyUserId(user.id);
+    try {
+      await deleteAdminUserRequest(user.id);
+      toast({ title: "User deleted", description: "The account has been removed." });
+      void loadUsers();
+    } catch (error) {
+      let description = "Unable to delete user.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Delete failed", description, variant: "destructive" });
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
+  const handleViewDocument = async (objectKey?: string) => {
+    if (!objectKey) {
+      toast({ title: "No document", description: "This record has no file key.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const { url } = await getDriverDocumentUrlRequest(objectKey);
+      window.open(url.url, "_blank");
+    } catch (error) {
+      let description = "Unable to open document.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Preview failed", description, variant: "destructive" });
+    }
+  };
 
   const handleApprove = async (driver: PendingDriverProfile) => {
     const userId = resolveUserId(driver);
@@ -76,7 +238,7 @@ const AdminDriverVerification = () => {
       await approveDriverRequest(userId, {
         reviewNotes: reasonByUserId[userId]?.trim() || undefined,
       });
-      setDrivers((prev) => prev.filter((d) => resolveUserId(d) !== userId));
+      setPendingDrivers((prev) => prev.filter((d) => resolveUserId(d) !== userId));
       toast({ title: "Driver approved", description: "Driver can now access driver routes." });
     } catch (error) {
       let description = "Unable to approve driver.";
@@ -101,7 +263,7 @@ const AdminDriverVerification = () => {
     setBusyUserId(userId);
     try {
       await rejectDriverRequest(userId, { reason });
-      setDrivers((prev) => prev.filter((d) => resolveUserId(d) !== userId));
+      setPendingDrivers((prev) => prev.filter((d) => resolveUserId(d) !== userId));
       toast({ title: "Driver rejected", description: "Application was rejected." });
     } catch (error) {
       let description = "Unable to reject driver.";
@@ -114,90 +276,383 @@ const AdminDriverVerification = () => {
     }
   };
 
+  const activeUsers = useMemo(() => users, [users]);
+
   return (
-    <div className="p-4 lg:p-6 max-w-5xl space-y-4">
+    <div className="p-4 lg:p-6 max-w-7xl space-y-4">
       <Card className="card-shadow border-0">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-primary" />
-            Driver Verification Queue
-          </CardTitle>
+        <CardHeader className="pb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-primary" />
+              User Management
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Manage passengers, drivers, and driver verification records from a single admin console.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            {activeTab !== "queue" && (
+              <Button size="sm" onClick={openAdd} className="flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Add User
+              </Button>
+            )}
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search users, emails, phone numbers..."
+              className="max-w-xs"
+            />
+          </div>
         </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading pending drivers...
-            </div>
-          ) : pendingDrivers.length === 0 ? (
-            <div className="text-sm text-muted-foreground py-3">No pending driver applications.</div>
-          ) : (
-            <div className="space-y-4">
-              {pendingDrivers.map((driver) => {
-                const userId = resolveUserId(driver);
-                const isBusy = busyUserId === userId;
 
-                return (
-                  <div key={userId || `${resolveEmail(driver)}-${driver.licenseNumber}`} className="rounded-xl border border-border p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{resolveName(driver)}</p>
-                        <p className="text-xs text-muted-foreground">{resolveEmail(driver)}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{resolvePhone(driver)}</p>
+        <CardContent className="space-y-4">
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="passengers">Passengers</TabsTrigger>
+              <TabsTrigger value="drivers">Drivers</TabsTrigger>
+              <TabsTrigger value="queue">Verification Queue</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="passengers">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" /> Loading passengers...
+                        </TableCell>
+                      </TableRow>
+                    ) : activeUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                          No passengers found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      activeUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.phone || "—"}</TableCell>
+                          <TableCell>
+                            <Badge className={`text-[10px] ${
+                              user.status === "active"
+                                ? "bg-success text-success-foreground"
+                                : user.status === "pending_verification"
+                                ? "bg-warning text-warning-foreground"
+                                : "bg-destructive text-destructive-foreground"
+                            }`}>
+                              {user.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(user)}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive"
+                                onClick={() => handleDelete(user)}
+                                disabled={busyUserId === user.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="drivers">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Approval</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 mr-2 inline-block animate-spin" /> Loading drivers...
+                        </TableCell>
+                      </TableRow>
+                    ) : activeUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                          No drivers found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      activeUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.phone || "—"}</TableCell>
+                          <TableCell>
+                            <Badge className={`text-[10px] ${
+                              user.status === "active"
+                                ? "bg-success text-success-foreground"
+                                : user.status === "pending_verification"
+                                ? "bg-warning text-warning-foreground"
+                                : "bg-destructive text-destructive-foreground"
+                            }`}>
+                              {user.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => openEdit(user)}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive"
+                                onClick={() => handleDelete(user)}
+                                disabled={busyUserId === user.id}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="queue">
+              {loading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading pending drivers...
+                </div>
+              ) : filteredPendingDrivers.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-6">No pending driver applications.</div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredPendingDrivers.map((driver) => {
+                    const userId = resolveUserId(driver);
+                    const isBusy = busyUserId === userId;
+
+                    return (
+                      <div key={userId || `${resolveEmail(driver)}-${driver.licenseNumber}`} className="rounded-xl border border-border p-4 space-y-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{resolveName(driver)}</p>
+                            <p className="text-xs text-muted-foreground">{resolveEmail(driver)}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{resolvePhone(driver)}</p>
+                          </div>
+                          <Badge className="bg-warning text-warning-foreground">Pending</Badge>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-muted-foreground">License Number</p>
+                            <p className="text-sm text-foreground">{driver.licenseNumber || "N/A"}</p>
+                          </div>
+                          <div className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-muted-foreground">Driver License</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.licenseFileKey)}>
+                                <Eye className="w-3.5 h-3.5" /> View
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-border p-3 sm:col-span-2">
+                            <p className="text-xs text-muted-foreground">NBI Document</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.nbiFileKey || undefined)}>
+                                <Eye className="w-3.5 h-3.5" /> View
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>
+                          <Input
+                            value={reasonByUserId[userId] || ""}
+                            onChange={(e) =>
+                              setReasonByUserId((prev) => ({
+                                ...prev,
+                                [userId]: e.target.value,
+                              }))
+                            }
+                            placeholder="Optional for approve, used as reason for reject"
+                            className="rounded-xl h-10"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button onClick={() => void handleApprove(driver)} disabled={isBusy}>
+                            {isBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                            Approve
+                          </Button>
+                          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/5" onClick={() => void handleReject(driver)} disabled={isBusy}>
+                            <X className="w-4 h-4 mr-1" /> Reject
+                          </Button>
+                        </div>
                       </div>
-                      <Badge className="bg-warning text-warning-foreground">Pending</Badge>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>License Number: <span className="text-foreground">{driver.licenseNumber || "N/A"}</span></p>
-                      <p>License File Key: <span className="text-foreground break-all">{driver.licenseFileKey || "N/A"}</span></p>
-                      <p>NBI File Key: <span className="text-foreground break-all">{driver.nbiFileKey || "N/A"}</span></p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>
-                      <Input
-                        value={reasonByUserId[userId] || ""}
-                        onChange={(e) =>
-                          setReasonByUserId((prev) => ({
-                            ...prev,
-                            [userId]: e.target.value,
-                          }))
-                        }
-                        placeholder="Optional for approve, used as reason for reject"
-                        className="rounded-xl h-10"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        className="rounded-xl"
-                        onClick={() => void handleApprove(driver)}
-                        disabled={isBusy}
-                      >
-                        {isBusy ? (
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                        ) : (
-                          <Check className="w-4 h-4 mr-1" />
-                        )}
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="rounded-xl border-destructive text-destructive hover:bg-destructive/5"
-                        onClick={() => void handleReject(driver)}
-                        disabled={isBusy}
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add User</DialogTitle>
+            <DialogDescription>Create a new passenger or driver account.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 pt-2 sm:grid-cols-2">
+            <div>
+              <Label>Name</Label>
+              <Input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select value={form.role} onValueChange={(value) => setForm((prev) => ({ ...prev, role: value as "passenger" | "driver" }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="passenger">Passenger</SelectItem>
+                  <SelectItem value="driver">Driver</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Password</Label>
+              <Input type="password" value={form.password} onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))} />
+            </div>
+            {form.role === "driver" && (
+              <>
+                <div>
+                  <Label>License Number</Label>
+                  <Input value={form.licenseNumber} onChange={(e) => setForm((prev) => ({ ...prev, licenseNumber: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>License File Key</Label>
+                  <Input value={form.licenseFileKey} onChange={(e) => setForm((prev) => ({ ...prev, licenseFileKey: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>NBI File Key</Label>
+                  <Input value={form.nbiFileKey} onChange={(e) => setForm((prev) => ({ ...prev, nbiFileKey: e.target.value }))} />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveUser} disabled={saving || !form.name || !form.email || !form.password || (form.role === "driver" && !form.licenseFileKey)}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={(open) => { if (!open) setSelectedUser(null); setEditOpen(open); }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update account information and driver profile if available.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 pt-2 sm:grid-cols-2">
+            <div>
+              <Label>Name</Label>
+              <Input value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(value) => setForm((prev) => ({ ...prev, status: value as "active" | "pending_verification" | "suspended" }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>New Password</Label>
+              <Input type="password" value={form.password} onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))} />
+            </div>
+            {form.role === "driver" && (
+              <>
+                <div>
+                  <Label>License Number</Label>
+                  <Input value={form.licenseNumber} onChange={(e) => setForm((prev) => ({ ...prev, licenseNumber: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>License File Key</Label>
+                  <Input value={form.licenseFileKey} onChange={(e) => setForm((prev) => ({ ...prev, licenseFileKey: e.target.value }))} />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label>NBI File Key</Label>
+                  <Input value={form.nbiFileKey} onChange={(e) => setForm((prev) => ({ ...prev, nbiFileKey: e.target.value }))} />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setEditOpen(false); setSelectedUser(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveUser} disabled={saving || !form.name || !form.email}>
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

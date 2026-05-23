@@ -22,7 +22,7 @@ const sidebarLinks = [
   { to: "/admin/routes", icon: Route, label: "Routes" },
   { to: "/admin/schedules", icon: Calendar, label: "Schedules" },
   { to: "/admin/bookings", icon: Ticket, label: "Bookings" },
-  { to: "/admin/users", icon: Users, label: "Users" },
+  { to: "/admin/users", icon: Users, label: "User Management" },
   { to: "/admin/reports", icon: BarChart3, label: "Reports" },
   { to: "/admin/profile", icon: User, label: "Profile" },
 ];
@@ -31,7 +31,7 @@ const mobileNavLinks = [
   { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/jeepneys", icon: Bus, label: "Jeepneys" },
   { to: "/admin/schedules", icon: Calendar, label: "Schedules" },
-  { to: "/admin/users", icon: Users, label: "Users" },
+  { to: "/admin/users", icon: Users, label: "User Management" },
 ];
 
 const AdminLayout = () => {
