@@ -216,7 +216,7 @@ const AdminDriverVerification = () => {
 
     try {
       const { url } = await getDriverDocumentUrlRequest(objectKey);
-      window.open(url.url, "_blank");
+      window.open(url, "_blank");
     } catch (error) {
       let description = "Unable to open document.";
       if (error instanceof ApiError && error.status >= 500) {
