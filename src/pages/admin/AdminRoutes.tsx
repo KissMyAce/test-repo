@@ -229,17 +229,17 @@ const AdminRoutes = () => {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label>Route Name *</Label>
-        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Route 12" />
+        <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Route 1" />
         {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
       </div>
       <div className="space-y-2">
         <Label>Origin *</Label>
-        <Input value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} placeholder="e.g. SM City" />
+        <Input value={form.from} onChange={(e) => setForm({ ...form, from: e.target.value })} placeholder="e.g. Alcantara" />
         {errors.from && <p className="text-xs text-destructive">{errors.from}</p>}
       </div>
       <div className="space-y-2">
         <Label>Destination *</Label>
-        <Input value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} placeholder="e.g. Ayala Terminal" />
+        <Input value={form.to} onChange={(e) => setForm({ ...form, to: e.target.value })} placeholder="e.g. Odiongan Terminal" />
         {errors.to && <p className="text-xs text-destructive">{errors.to}</p>}
       </div>
       <div className="space-y-2">
