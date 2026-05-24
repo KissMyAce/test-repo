@@ -46,8 +46,10 @@ import { cn } from "@/lib/utils";
 import {
   createMyScheduleRequest,
   deleteMyScheduleRequest,
+  getMyJeepneyRequest,
   getMySchedulesRequest,
   getRoutesRequest,
+  JeepneyData,
   RouteData,
   ScheduleData,
   ScheduleStatus,
@@ -87,6 +89,7 @@ const DriverSchedules = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [routeList, setRouteList] = useState<RouteData[]>([]);
+  const [myJeepney, setMyJeepney] = useState<JeepneyData | null>(null);
   const [scheduleList, setScheduleList] = useState<ScheduleData[]>([]);
 
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
@@ -105,18 +108,23 @@ const DriverSchedules = () => {
   useEffect(() => {
     let mounted = true;
 
-    const loadRoutes = async () => {
+    const loadRoutesAndJeepney = async () => {
       try {
-        const payload = await getRoutesRequest({ isActive: true });
+        const [routePayload, jeepneyPayload] = await Promise.all([
+          getRoutesRequest({ isActive: true }),
+          getMyJeepneyRequest(),
+        ]);
         if (!mounted) return;
-        setRouteList(payload.routes || []);
+        setRouteList(routePayload.routes || []);
+        setMyJeepney(jeepneyPayload.jeepney || null);
       } catch {
         if (!mounted) return;
         setRouteList([]);
+        setMyJeepney(null);
       }
     };
 
-    void loadRoutes();
+    void loadRoutesAndJeepney();
 
     return () => {
       mounted = false;
@@ -282,6 +290,19 @@ const DriverSchedules = () => {
     setDeleteOpen(true);
   };
 
+  const selectedRouteOptions = useMemo(() => {
+    if (!myJeepney?.route?.id) {
+      return routeList;
+    }
+    return routeList.filter((route) => route.id === myJeepney.route?.id);
+  }, [myJeepney, routeList]);
+
+  useEffect(() => {
+    if (myJeepney?.route?.id && !form.routeId) {
+      setForm((prev) => ({ ...prev, routeId: myJeepney.route!.id }));
+    }
+  }, [myJeepney, form.routeId]);
+
   const filteredSchedules = useMemo(() => scheduleList, [scheduleList]);
 
   const ScheduleFormFields = () => (
@@ -293,13 +314,16 @@ const DriverSchedules = () => {
             <SelectValue placeholder="Select route" />
           </SelectTrigger>
           <SelectContent>
-            {routeList.map((route) => (
+            {selectedRouteOptions.map((route) => (
               <SelectItem key={route.id} value={route.id}>
                 {route.name} — {route.origin} → {route.destination}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        {myJeepney?.route?.id && selectedRouteOptions.length === 1 ? (
+          <p className="text-[11px] text-muted-foreground">Route is fixed to your assigned jeepney route.</p>
+        ) : null}
         {errors.routeId && <p className="text-[11px] text-destructive">{errors.routeId}</p>}
       </div>
 
