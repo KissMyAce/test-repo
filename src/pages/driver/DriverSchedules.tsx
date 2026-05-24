@@ -291,10 +291,13 @@ const DriverSchedules = () => {
   };
 
   const selectedRouteOptions = useMemo(() => {
-    if (!myJeepney?.route?.id) {
-      return routeList;
-    }
-    return routeList.filter((route) => route.id === myJeepney.route?.id);
+    if (!myJeepney?.route?.id) return routeList;
+
+    // Include the assigned jeepney route and its reverse direction (if present)
+    return routeList.filter((route) => {
+      if (route.id === myJeepney.route!.id) return true;
+      return route.origin === myJeepney.route!.destination && route.destination === myJeepney.route!.origin;
+    });
   }, [myJeepney, routeList]);
 
   useEffect(() => {
@@ -321,8 +324,8 @@ const DriverSchedules = () => {
             ))}
           </SelectContent>
         </Select>
-        {myJeepney?.route?.id && selectedRouteOptions.length === 1 ? (
-          <p className="text-[11px] text-muted-foreground">Only your assigned jeepney route appears here.</p>
+        {myJeepney?.route?.id && selectedRouteOptions.length > 0 ? (
+          <p className="text-[11px] text-muted-foreground">Only your assigned jeepney routes appear here.</p>
         ) : null}
         {errors.routeId && <p className="text-[11px] text-destructive">{errors.routeId}</p>}
       </div>
