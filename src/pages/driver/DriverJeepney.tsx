@@ -305,7 +305,7 @@ const DriverJeepney = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Jeepney Code</Label>
+              <Label className="text-xs">Jeepney Name</Label>
               <Input
                 value={form.code}
                 onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
@@ -463,7 +463,7 @@ const DriverJeepney = () => {
           {editing ? (
             <>
               <div className="space-y-1.5">
-                <Label className="text-xs">Jeepney Code</Label>
+                <Label className="text-xs">Jeepney Name</Label>
                 <Input
                   value={form.code}
                   onChange={(event) =>
@@ -564,7 +564,7 @@ const DriverJeepney = () => {
             </>
           ) : (
             <>
-              <InfoRow label="Jeepney Code" value={form.code} />
+              <InfoRow label="Jeepney Name" value={form.code} />
               <InfoRow label="Plate Number" value={form.plateNumber} />
               <InfoRow
                 label="Route"

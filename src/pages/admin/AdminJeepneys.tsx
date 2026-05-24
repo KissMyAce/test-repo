@@ -255,9 +255,9 @@ const AdminJeepneys = () => {
   };
 
   const renderFormFields = () => (
-    <div className="space-y-4">
+      <div className="space-y-4">
       <div className="space-y-2">
-        <Label>Jeepney Code *</Label>
+        <Label>Jeepney Name *</Label>
         <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. JEEP-001" />
         {errors.code && <p className="text-xs text-destructive">{errors.code}</p>}
       </div>
@@ -525,7 +525,7 @@ const AdminJeepneys = () => {
                   </div>
               <div className="space-y-4">
                 {[
-                  { label: "Code", value: selected.code },
+                  { label: "Name", value: selected.code },
                   { label: "Plate", value: selected.plateNumber },
                   { label: "Driver", value: selected.driverName },
                   { label: "Route", value: `${selected.route.name} — ${selected.route.from} → ${selected.route.to}` },
