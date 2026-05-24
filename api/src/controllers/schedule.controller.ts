@@ -57,8 +57,23 @@ const ensureJeepneyExists = async (jeepneyId: string) => {
   return jeepney;
 };
 
-const ensureJeepneyRouteMatch = (jeepneyRouteId: Types.ObjectId, routeId: string | Types.ObjectId) => {
-  if (jeepneyRouteId.toString() !== routeId.toString()) {
+const ensureJeepneyRouteMatch = async (jeepneyRouteId: Types.ObjectId, routeId: string | Types.ObjectId) => {
+  // Allow either the same route or the reverse directional route (origin/destination swapped)
+  const routeObjectId = typeof routeId === "string" ? toObjectId(routeId, "INVALID_ROUTE_ID", "Invalid routeId") : routeId;
+
+  const [assignedRoute, selectedRoute] = await Promise.all([
+    RouteModel.findById(jeepneyRouteId).select("_id origin destination").lean(),
+    RouteModel.findById(routeObjectId).select("_id origin destination").lean(),
+  ]);
+
+  if (!assignedRoute || !selectedRoute) {
+    throw new AppError(400, "INVALID_ROUTE_ID", "Route does not exist");
+  }
+
+  const same = (assignedRoute._id as any).toString() === (selectedRoute._id as any).toString();
+  const reverse = assignedRoute.origin === selectedRoute.destination && assignedRoute.destination === selectedRoute.origin;
+
+  if (!same && !reverse) {
     throw new AppError(
       400,
       "ROUTE_JEEPNEY_MISMATCH",
@@ -279,7 +294,7 @@ export const createSchedule = asyncHandler(async (req: Request, res: Response) =
 
   const route = await ensureRouteExists(routeId);
   const jeepney = await ensureJeepneyExists(jeepneyId);
-  ensureJeepneyRouteMatch(jeepney.routeId as Types.ObjectId, route._id);
+  await ensureJeepneyRouteMatch(jeepney.routeId as Types.ObjectId, route._id);
 
   const parsedDeparture = parseDateTime(
     departureAt,
@@ -335,7 +350,7 @@ export const updateSchedule = asyncHandler(async (req: Request, res: Response) =
     nextRouteId = route._id as Types.ObjectId;
   }
 
-  ensureJeepneyRouteMatch(nextJeepneyRouteId, nextRouteId);
+  await ensureJeepneyRouteMatch(nextJeepneyRouteId, nextRouteId);
 
   if (departureAt) {
     schedule.departureAt = parseDateTime(
@@ -423,7 +438,7 @@ export const createMySchedule = asyncHandler(async (req: Request, res: Response)
   }
 
   const route = await ensureRouteExists(routeId);
-  ensureJeepneyRouteMatch(driverJeepney.routeId as Types.ObjectId, route._id);
+  await ensureJeepneyRouteMatch(driverJeepney.routeId as Types.ObjectId, route._id);
 
   const parsedDeparture = parseDateTime(
     departureAt,
@@ -474,7 +489,7 @@ export const updateMySchedule = asyncHandler(async (req: Request, res: Response)
 
   if (routeId) {
     const route = await ensureRouteExists(routeId);
-    ensureJeepneyRouteMatch(driverJeepney.routeId as Types.ObjectId, route._id);
+    await ensureJeepneyRouteMatch(driverJeepney.routeId as Types.ObjectId, route._id);
     schedule.routeId = route._id as Types.ObjectId;
   }
 
