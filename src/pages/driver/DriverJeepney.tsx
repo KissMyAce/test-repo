@@ -42,15 +42,26 @@ type DriverJeepneyForm = {
   code: string;
   plateNumber: string;
   capacity: number;
-  routeId: string;
+  route1Id: string;
+  route2Id: string;
   photoKey: string | null;
 };
 
-const toForm = (jeepney: JeepneyData): DriverJeepneyForm => ({
+const findReverseRouteId = (routeId: string, routes: RouteData[]) => {
+  const route = routes.find((route) => route.id === routeId);
+  if (!route) return "";
+  const reverse = routes.find(
+    (other) => other.origin === route.destination && other.destination === route.origin,
+  );
+  return reverse?.id || "";
+};
+
+const toForm = (jeepney: JeepneyData, routes: RouteData[]): DriverJeepneyForm => ({
   code: jeepney.code || "",
   plateNumber: jeepney.plateNumber || "",
   capacity: jeepney.capacity || 20,
-  routeId: jeepney.route?.id || "",
+  route1Id: jeepney.route?.id || "",
+  route2Id: findReverseRouteId(jeepney.route?.id || "", routes),
   photoKey: jeepney.photoKey || null,
 });
 
@@ -72,7 +83,8 @@ const DriverJeepney = () => {
     code: "",
     plateNumber: "",
     capacity: 20,
-    routeId: "",
+    route1Id: "",
+    route2Id: "",
     photoKey: null,
   });
 
@@ -91,7 +103,7 @@ const DriverJeepney = () => {
         if (!mounted) return;
         setRoutes(routePayload.routes || []);
         setJeepney(myJeepneyPayload.jeepney);
-        setForm(toForm(myJeepneyPayload.jeepney));
+        setForm(toForm(myJeepneyPayload.jeepney, routePayload.routes || []));
         setHasJeepney(true);
       } catch (error) {
         if (!mounted) return;
@@ -131,7 +143,7 @@ const DriverJeepney = () => {
     const nextErrors: Record<string, string> = {};
     if (!form.code.trim()) nextErrors.code = "Required";
     if (!form.plateNumber.trim()) nextErrors.plateNumber = "Required";
-    if (!form.routeId) nextErrors.routeId = "Required";
+    if (!form.route1Id) nextErrors.route1Id = "Required";
     if (form.capacity < 1 || form.capacity > 40) nextErrors.capacity = "Must be 1-40";
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -210,13 +222,13 @@ const DriverJeepney = () => {
       const payload = await updateMyJeepneyRequest({
         code: form.code.trim(),
         plateNumber: form.plateNumber.trim(),
-        routeId: form.routeId,
+        routeId: form.route1Id,
         capacity: form.capacity,
         photoKey: form.photoKey,
       });
 
       setJeepney(payload.jeepney);
-      setForm(toForm(payload.jeepney));
+      setForm(toForm(payload.jeepney, routes));
       setEditing(false);
       setErrors({});
       toast({ title: "Saved", description: "Jeepney info updated." });
@@ -235,7 +247,7 @@ const DriverJeepney = () => {
 
   const handleCancel = () => {
     if (jeepney) {
-      setForm(toForm(jeepney));
+      setForm(toForm(jeepney, routes));
     }
     if (photoPreview) {
       URL.revokeObjectURL(photoPreview);
@@ -245,8 +257,10 @@ const DriverJeepney = () => {
     setEditing(false);
   };
 
-  const selectedRoute = routes.find((route) => route.id === form.routeId);
-  const selectedRouteIndex = selectedRoute ? routes.findIndex((route) => route.id === selectedRoute.id) : -1;
+  const selectedRoute1 = routes.find((route) => route.id === form.route1Id);
+  const selectedRoute1Index = selectedRoute1 ? routes.findIndex((route) => route.id === selectedRoute1.id) : -1;
+  const selectedRoute2 = routes.find((route) => route.id === form.route2Id);
+  const selectedRoute2Index = selectedRoute2 ? routes.findIndex((route) => route.id === selectedRoute2.id) : -1;
 
   if (loading) {
     return (
@@ -270,13 +284,13 @@ const DriverJeepney = () => {
         const payload = await applyMyJeepneyRequest({
           code: form.code.trim(),
           plateNumber: form.plateNumber.trim(),
-          routeId: form.routeId,
+          routeId: form.route1Id,
           capacity: form.capacity,
           photoKey: form.photoKey || undefined,
         });
 
         setJeepney(payload.jeepney);
-        setForm(toForm(payload.jeepney));
+        setForm(toForm(payload.jeepney, routes));
         setHasJeepney(true);
         setEditing(false);
         setErrors({});
@@ -354,10 +368,19 @@ const DriverJeepney = () => {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Route</Label>
-              <Select value={form.routeId} onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}>
-                <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
-                  <SelectValue placeholder="Select route" />
+              <Label className="text-xs">Route 1</Label>
+              <Select
+                value={form.route1Id}
+                onValueChange={(value) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    route1Id: value,
+                    route2Id: findReverseRouteId(value, routes),
+                  }))
+                }
+              >
+                <SelectTrigger className={errors.route1Id ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Select route 1" />
                 </SelectTrigger>
                 <SelectContent>
                   {routes.map((route, index) => (
@@ -367,11 +390,25 @@ const DriverJeepney = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.routeId && (
+              {errors.route1Id && (
                 <p className="text-[11px] text-destructive flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> {errors.routeId}
+                  <AlertCircle className="w-3 h-3" /> {errors.route1Id}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Route 2</Label>
+              <Input
+                value={
+                  selectedRoute2
+                    ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
+                    : form.route1Id
+                    ? "No reverse route available"
+                    : "Select Route 1 first"
+                }
+                disabled
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -516,13 +553,19 @@ const DriverJeepney = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Route</Label>
+                <Label className="text-xs">Route 1</Label>
                 <Select
-                  value={form.routeId}
-                  onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}
+                  value={form.route1Id}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      route1Id: value,
+                      route2Id: findReverseRouteId(value, routes),
+                    }))
+                  }
                 >
-                  <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Select route" />
+                  <SelectTrigger className={errors.route1Id ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Select route 1" />
                   </SelectTrigger>
                   <SelectContent>
                     {routes.map((route, index) => (
@@ -532,11 +575,25 @@ const DriverJeepney = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.routeId && (
+                {errors.route1Id && (
                   <p className="text-[11px] text-destructive flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {errors.routeId}
+                    <AlertCircle className="w-3 h-3" /> {errors.route1Id}
                   </p>
                 )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Route 2</Label>
+                <Input
+                  value={
+                    selectedRoute2
+                      ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
+                      : form.route1Id
+                      ? "No reverse route available"
+                      : "Select Route 1 first"
+                  }
+                  disabled
+                />
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -566,13 +623,21 @@ const DriverJeepney = () => {
               <InfoRow label="Jeepney Name" value={form.code} />
               <InfoRow label="Plate Number" value={form.plateNumber} />
               <InfoRow
-                label="Route"
+                label="Route 1"
                 value={
-                  selectedRoute
-                    ? `Route ${selectedRouteIndex + 1}: ${selectedRoute.origin} → ${selectedRoute.destination}`
+                  selectedRoute1
+                    ? `Route ${selectedRoute1Index + 1}: ${selectedRoute1.origin} → ${selectedRoute1.destination}`
                     : "-"
                 }
                 icon={<MapPin className="w-3 h-3 text-primary" />}
+              />
+              <InfoRow
+                label="Route 2"
+                value={
+                  selectedRoute2
+                    ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
+                    : "-"
+                }
               />
               <InfoRow
                 label="Capacity"
