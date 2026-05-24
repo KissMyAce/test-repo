@@ -14,11 +14,13 @@ import {
   createAdminUserRequest,
   deleteAdminUserRequest,
   getAdminUsersRequest,
+  getAdminJeepneysRequest,
   getDriverDocumentUrlRequest,
   getPendingDriversRequest,
   updateAdminUserRequest,
   PendingDriverProfile,
   AdminUser,
+  JeepneyData,
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 import { toast } from "@/hooks/use-toast";
@@ -57,6 +59,7 @@ const AdminDriverVerification = () => {
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [pendingDrivers, setPendingDrivers] = useState<PendingDriverProfile[]>([]);
+  const [pendingJeepneys, setPendingJeepneys] = useState<JeepneyData[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -96,10 +99,14 @@ const AdminDriverVerification = () => {
   const loadPendingDrivers = async () => {
     setLoading(true);
     try {
-      const payload = await getPendingDriversRequest();
-      setPendingDrivers(normalizePendingDrivers(payload));
+      const [driverPayload, jeepneyPayload] = await Promise.all([
+        getPendingDriversRequest(),
+        getAdminJeepneysRequest({ status: "inactive" }),
+      ]);
+      setPendingDrivers(normalizePendingDrivers(driverPayload));
+      setPendingJeepneys(jeepneyPayload.jeepneys || []);
     } catch (error) {
-      let description = "Unable to load pending drivers.";
+      let description = "Unable to load pending items.";
       if (error instanceof ApiError && error.status >= 500) {
         description = "Server error. Please try again shortly.";
       }
@@ -449,104 +456,140 @@ const AdminDriverVerification = () => {
             <TabsContent value="queue">
               {loading ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading pending drivers...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading pending verification items...
                 </div>
-              ) : filteredPendingDrivers.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-6">No pending driver applications.</div>
+              ) : filteredPendingDrivers.length === 0 && pendingJeepneys.length === 0 ? (
+                <div className="text-sm text-muted-foreground py-6">No pending driver or jeepney applications.</div>
               ) : (
-                <div className="space-y-4">
-                  {filteredPendingDrivers.map((driver) => {
-                    const userId = resolveUserId(driver);
-                    const isBusy = busyUserId === userId;
+                <div className="space-y-6">
+                  {filteredPendingDrivers.length > 0 ? (
+                    <div className="space-y-4">
+                      <p className="text-sm font-semibold text-foreground">Pending driver applications</p>
+                      {filteredPendingDrivers.map((driver) => {
+                        const userId = resolveUserId(driver);
+                        const isBusy = busyUserId === userId;
 
-                    return (
-                      <div key={userId || `${resolveEmail(driver)}-${driver.licenseNumber}`} className="rounded-xl border border-border p-4 space-y-3">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">{resolveName(driver)}</p>
-                            <p className="text-xs text-muted-foreground">{resolveEmail(driver)}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{resolvePhone(driver)}</p>
-                          </div>
-                          <Badge className="bg-warning text-warning-foreground">Pending</Badge>
-                        </div>
+                        return (
+                          <div key={userId || `${resolveEmail(driver)}-${driver.licenseNumber}`} className="rounded-xl border border-border p-4 space-y-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{resolveName(driver)}</p>
+                                <p className="text-xs text-muted-foreground">{resolveEmail(driver)}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{resolvePhone(driver)}</p>
+                              </div>
+                              <Badge className="bg-warning text-warning-foreground">Pending</Badge>
+                            </div>
 
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-xs text-muted-foreground">License Number</p>
-                            <p className="text-sm text-foreground">{driver.licenseNumber || "N/A"}</p>
-                          </div>
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-xs text-muted-foreground">Driver License</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.licenseFileKey)}>
-                                <Eye className="w-3.5 h-3.5" /> View
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-xs text-muted-foreground">Jeepney Name</p>
-                            <p className="text-sm text-foreground">{driver.jeepneyCode || "N/A"}</p>
-                          </div>
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-xs text-muted-foreground">Plate Number</p>
-                            <p className="text-sm text-foreground">{driver.jeepneyPlateNumber || "N/A"}</p>
-                          </div>
-                          <div className="rounded-xl border border-border p-3 sm:col-span-2">
-                            <p className="text-xs text-muted-foreground">NBI Document</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.nbiFileKey || undefined)}>
-                                <Eye className="w-3.5 h-3.5" /> View
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        {driver.jeepneyPhotoKey ? (
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-xs text-muted-foreground">Jeepney Photo</p>
-                            <div className="mt-3 flex flex-col gap-3">
-                              {driver.jeepneyPhotoUrl ? (
-                                <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
-                                  <img src={driver.jeepneyPhotoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-xl border border-border p-3">
+                                <p className="text-xs text-muted-foreground">License Number</p>
+                                <p className="text-sm text-foreground">{driver.licenseNumber || "N/A"}</p>
+                              </div>
+                              <div className="rounded-xl border border-border p-3">
+                                <p className="text-xs text-muted-foreground">Driver License</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.licenseFileKey)}>
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </Button>
                                 </div>
-                              ) : (
-                                <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
-                                  No preview URL available. View via direct link.
+                              </div>
+                              <div className="rounded-xl border border-border p-3">
+                                <p className="text-xs text-muted-foreground">Jeepney Name</p>
+                                <p className="text-sm text-foreground">{driver.jeepneyCode || "N/A"}</p>
+                              </div>
+                              <div className="rounded-xl border border-border p-3">
+                                <p className="text-xs text-muted-foreground">Plate Number</p>
+                                <p className="text-sm text-foreground">{driver.jeepneyPlateNumber || "N/A"}</p>
+                              </div>
+                              <div className="rounded-xl border border-border p-3 sm:col-span-2">
+                                <p className="text-xs text-muted-foreground">NBI Document</p>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.nbiFileKey || undefined)}>
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </Button>
                                 </div>
-                              )}
-                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.jeepneyPhotoKey || undefined)}>
-                                <Eye className="w-3.5 h-3.5" /> View full photo
+                              </div>
+                            </div>
+                            {driver.jeepneyPhotoKey ? (
+                              <div className="rounded-xl border border-border p-3">
+                                <p className="text-xs text-muted-foreground">Jeepney Photo</p>
+                                <div className="mt-3 flex flex-col gap-3">
+                                  {driver.jeepneyPhotoUrl ? (
+                                    <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
+                                      <img src={driver.jeepneyPhotoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+                                      No preview URL available. View via direct link.
+                                    </div>
+                                  )}
+                                  <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.jeepneyPhotoKey || undefined)}>
+                                    <Eye className="w-3.5 h-3.5" /> View full photo
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : null}
+
+                            <div className="space-y-2">
+                              <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>
+                              <Input
+                                value={reasonByUserId[userId] || ""}
+                                onChange={(e) =>
+                                  setReasonByUserId((prev) => ({
+                                    ...prev,
+                                    [userId]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Optional for approve, used as reason for reject"
+                                className="rounded-xl h-10"
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Button onClick={() => void handleApprove(driver)} disabled={isBusy}>
+                                {isBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                                Approve
+                              </Button>
+                              <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/5" onClick={() => void handleReject(driver)} disabled={isBusy}>
+                                <X className="w-4 h-4 mr-1" /> Reject
                               </Button>
                             </div>
                           </div>
-                        ) : null}
+                        );
+                      })}
+                    </div>
+                  ) : null}
 
-                        <div className="space-y-2">
-                          <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>
-                          <Input
-                            value={reasonByUserId[userId] || ""}
-                            onChange={(e) =>
-                              setReasonByUserId((prev) => ({
-                                ...prev,
-                                [userId]: e.target.value,
-                              }))
-                            }
-                            placeholder="Optional for approve, used as reason for reject"
-                            className="rounded-xl h-10"
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button onClick={() => void handleApprove(driver)} disabled={isBusy}>
-                            {isBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
-                            Approve
-                          </Button>
-                          <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/5" onClick={() => void handleReject(driver)} disabled={isBusy}>
-                            <X className="w-4 h-4 mr-1" /> Reject
-                          </Button>
-                        </div>
+                  {pendingJeepneys.length > 0 ? (
+                    <div className="space-y-4">
+                      <p className="text-sm font-semibold text-foreground">Pending jeepney applications</p>
+                      <div className="space-y-4">
+                        {pendingJeepneys.map((jeepney) => (
+                          <div key={jeepney.id} className="rounded-xl border border-border p-4 space-y-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{jeepney.name || jeepney.code || "Unnamed jeepney"}</p>
+                                <p className="text-xs text-muted-foreground">Plate: {jeepney.plateNumber || "N/A"}</p>
+                                <p className="text-xs text-muted-foreground">Route: {jeepney.route?.name || jeepney.routeName || "Unknown route"}</p>
+                                <p className="text-xs text-muted-foreground">Capacity: {jeepney.capacity || "N/A"}</p>
+                                <p className="text-xs text-muted-foreground">Driver: {jeepney.driver?.name || jeepney.driverName || "Unknown"}</p>
+                              </div>
+                              <Badge className="bg-warning text-warning-foreground">Pending</Badge>
+                            </div>
+                            {jeepney.photoUrl ? (
+                              <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
+                                <img src={jeepney.photoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
+                              </div>
+                            ) : jeepney.photoKey ? (
+                              <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+                                Jeepney photo uploaded, no preview URL available.
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ) : null}
                 </div>
               )}
             </TabsContent>
