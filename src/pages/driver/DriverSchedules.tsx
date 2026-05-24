@@ -80,7 +80,7 @@ const emptyForm: ScheduleForm = {
 };
 
 const combineDateTimeToIso = (dateText: string, timeText: string) =>
-  new Date(`${dateText}T${timeText}:00`).toISOString();
+  new Date(`${dateText}T${timeText}:00.000Z`).toISOString();
 
 const DriverSchedules = () => {
   const { toast } = useToast();
