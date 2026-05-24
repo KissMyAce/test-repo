@@ -138,7 +138,8 @@ const DriverJeepney = () => {
   };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
 
     if (!ACCEPTED_PHOTO_TYPES.includes(file.type)) {
@@ -180,14 +181,9 @@ const DriverJeepney = () => {
         throw new Error("Upload failed");
       }
 
-      await commitUploadRequest({
-        objectKey: presign.objectKey,
-        purpose: "driver-photo",
-      });
+      await commitUploadRequest({ objectKey: presign.objectKey, purpose: "driver-photo" });
 
-      if (photoPreview) {
-        URL.revokeObjectURL(photoPreview);
-      }
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
       setPhotoPreview(URL.createObjectURL(file));
       setForm((prev) => ({ ...prev, photoKey: presign.objectKey }));
 
@@ -200,7 +196,9 @@ const DriverJeepney = () => {
       });
     } finally {
       setUploadingPhoto(false);
-      e.currentTarget.value = "";
+      try {
+        input.value = "";
+      } catch {}
     }
   };
 
