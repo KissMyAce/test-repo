@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
-import { DriverProfileModel, UserModel } from "../models";
+import { DriverProfileModel, JeepneyModel, UserModel } from "../models";
 import { createAuditLog } from "../services/audit.service";
 import { createSignedGetUrl } from "../services/r2.service";
+import { getPublicObjectUrl } from "../utils/object-url";
 import { hashPassword } from "../utils/password";
 import { AppError } from "../utils/app-error";
 import { asyncHandler } from "../utils/async-handler";
@@ -272,6 +273,31 @@ export const listPendingDrivers = asyncHandler(async (_req: Request, res: Respon
     .populate("userId", "name email phone status createdAt")
     .lean();
 
+  const driverIds = pending
+    .map((item) => (item.userId && typeof item.userId === "object" ? (item.userId as any)._id?.toString() : item.userId?.toString()))
+    .filter(Boolean) as string[];
+
+  const jeepneysByDriver = new Map<string, { photoKey?: string | null; code?: string; plateNumber?: string }>();
+  if (driverIds.length > 0) {
+    const jeepneys = await JeepneyModel.find({
+      driverId: { $in: driverIds.map((id) => new Types.ObjectId(id)) },
+      status: "inactive",
+    })
+      .select("driverId photoKey code plateNumber")
+      .lean();
+
+    jeepneys.forEach((jeepney) => {
+      const driverId = jeepney.driverId && typeof jeepney.driverId === "object" ? (jeepney.driverId as any)._id?.toString() : jeepney.driverId;
+      if (driverId) {
+        jeepneysByDriver.set(driverId, {
+          photoKey: jeepney.photoKey || null,
+          code: jeepney.code,
+          plateNumber: jeepney.plateNumber,
+        });
+      }
+    });
+  }
+
   const drivers = pending.map((item) => {
     const populatedUser = item.userId as unknown as {
       _id?: Types.ObjectId;
@@ -281,14 +307,20 @@ export const listPendingDrivers = asyncHandler(async (_req: Request, res: Respon
       status?: string;
       createdAt?: Date;
     };
+    const driverId = populatedUser?._id?.toString() || item.userId?.toString();
+    const jeepney = driverId ? jeepneysByDriver.get(driverId) : undefined;
 
     return {
-      userId: populatedUser?._id?.toString() || item.userId?.toString(),
+      userId: driverId,
       licenseNumber: item.licenseNumber,
       licenseFileKey: item.licenseFileKey,
       nbiFileKey: item.nbiFileKey || null,
       approvalStatus: item.approvalStatus,
       createdAt: item.createdAt,
+      jeepneyPhotoKey: jeepney?.photoKey || null,
+      jeepneyPhotoUrl: getPublicObjectUrl(jeepney?.photoKey || null),
+      jeepneyCode: jeepney?.code || "",
+      jeepneyPlateNumber: jeepney?.plateNumber || "",
       user: populatedUser
         ? {
             id: populatedUser._id?.toString(),
@@ -324,6 +356,11 @@ export const approveDriver = asyncHandler(async (req: Request, res: Response) =>
   await driverProfile.save();
 
   await UserModel.findByIdAndUpdate(userId, { $set: { status: "active" } });
+
+  await JeepneyModel.updateMany(
+    { driverId: new Types.ObjectId(userId), status: "inactive" },
+    { $set: { status: "active" } }
+  );
 
   await createAuditLog({
     actorUserId: req.authUser.id,

@@ -483,6 +483,14 @@ const AdminDriverVerification = () => {
                               </Button>
                             </div>
                           </div>
+                          <div className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-muted-foreground">Jeepney Name</p>
+                            <p className="text-sm text-foreground">{driver.jeepneyCode || "N/A"}</p>
+                          </div>
+                          <div className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-muted-foreground">Plate Number</p>
+                            <p className="text-sm text-foreground">{driver.jeepneyPlateNumber || "N/A"}</p>
+                          </div>
                           <div className="rounded-xl border border-border p-3 sm:col-span-2">
                             <p className="text-xs text-muted-foreground">NBI Document</p>
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -492,6 +500,25 @@ const AdminDriverVerification = () => {
                             </div>
                           </div>
                         </div>
+                        {driver.jeepneyPhotoKey ? (
+                          <div className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-muted-foreground">Jeepney Photo</p>
+                            <div className="mt-3 flex flex-col gap-3">
+                              {driver.jeepneyPhotoUrl ? (
+                                <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
+                                  <img src={driver.jeepneyPhotoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
+                                </div>
+                              ) : (
+                                <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+                                  No preview URL available. View via direct link.
+                                </div>
+                              )}
+                              <Button size="sm" variant="outline" onClick={() => void handleViewDocument(driver.jeepneyPhotoKey || undefined)}>
+                                <Eye className="w-3.5 h-3.5" /> View full photo
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="space-y-2">
                           <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>

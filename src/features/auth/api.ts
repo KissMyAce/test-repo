@@ -50,6 +50,10 @@ export interface PendingDriverProfile {
   nbiFileKey?: string | null;
   approvalStatus?: "pending" | "approved" | "rejected";
   createdAt?: string;
+  jeepneyPhotoKey?: string | null;
+  jeepneyPhotoUrl?: string | null;
+  jeepneyCode?: string;
+  jeepneyPlateNumber?: string;
   user?: PendingDriverUser;
 }
 
