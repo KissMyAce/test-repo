@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Bus,
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  Eye,
-  AlertTriangle,
-  Loader2,
-} from "lucide-react";
+import { Bus, Search, Pencil, Trash2, Eye, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +39,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import {
   getApprovedDriversRequest,
-  createJeepneyRequest,
   deleteJeepneyRequest,
   getAdminJeepneysRequest,
   getRoutesRequest,
@@ -106,10 +96,8 @@ const AdminJeepneys = () => {
   const [driverOptions, setDriverOptions] = useState<DriverOption[]>([]);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [routeFilter, setRouteFilter] = useState("all");
 
-  const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -132,7 +120,7 @@ const AdminJeepneys = () => {
 
     try {
       const [jeepneyPayload, routePayload, approvedPayload] = await Promise.all([
-        getAdminJeepneysRequest(),
+        getAdminJeepneysRequest({ status: "active" }),
         getRoutesRequest({ isActive: true }),
         getApprovedDriversRequest(),
       ]);
@@ -182,11 +170,10 @@ const AdminJeepneys = () => {
         j.code.toLowerCase().includes(s) ||
         j.plateNumber.toLowerCase().includes(s) ||
         j.driverName.toLowerCase().includes(s);
-      const matchStatus = statusFilter === "all" || j.status === statusFilter;
       const matchRoute = routeFilter === "all" || j.route.id === routeFilter;
-      return matchSearch && matchStatus && matchRoute;
+      return matchSearch && matchRoute;
     });
-  }, [jeepneyList, search, statusFilter, routeFilter]);
+  }, [jeepneyList, search, routeFilter]);
 
   const resetForm = () => {
     setForm({ code: "", plateNumber: "", driverId: "", routeId: "", capacity: 20, status: true });
@@ -202,33 +189,6 @@ const AdminJeepneys = () => {
     if (form.capacity < 1 || form.capacity > 40) e.capacity = "Must be 1–40";
     setErrors(e);
     return Object.keys(e).length === 0;
-  };
-
-  const handleAdd = async () => {
-    if (!validate()) return;
-    setSaving(true);
-    try {
-      const payload = await createJeepneyRequest({
-        code: form.code.trim(),
-        plateNumber: form.plateNumber.trim(),
-        driverId: form.driverId,
-        routeId: form.routeId,
-        capacity: form.capacity,
-        status: form.status ? "active" : "inactive",
-      });
-
-      setJeepneyList((prev) => [mapJeepney(payload.jeepney), ...prev]);
-      setAddOpen(false);
-      resetForm();
-      toast({ title: "Jeepney added", description: "New jeepney has been created." });
-    } catch (error) {
-      let description = "Unable to add jeepney.";
-      if (error instanceof ApiError && error.status === 400) description = "Invalid input. Check route/driver IDs.";
-      else if (error instanceof ApiError && error.status >= 500) description = "Server error. Please try again shortly.";
-      toast({ title: "Create failed", description, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
   };
 
   const openEdit = (j: JeepneyView) => {
@@ -367,13 +327,13 @@ const AdminJeepneys = () => {
   return (
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h1 className="text-xl font-bold text-foreground">Manage Jeepneys</h1>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Approved Jeepneys</h1>
+          <p className="text-sm text-muted-foreground">Showing approved/active jeepneys in the admin dashboard.</p>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => void loadAll(false)} disabled={refreshing}>
             {refreshing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}
-          </Button>
-          <Button onClick={() => { resetForm(); setAddOpen(true); }} className="w-full sm:w-auto">
-            <Plus className="w-4 h-4" /> Add Jeepney
           </Button>
         </div>
       </div>
@@ -383,14 +343,6 @@ const AdminJeepneys = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Search code, plate, driver..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
         <Select value={routeFilter} onValueChange={setRouteFilter}>
           <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -493,20 +445,6 @@ const AdminJeepneys = () => {
           </Card>
         </>
       )}
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Jeepney</DialogTitle>
-            <DialogDescription>Fill in the details to add a new jeepney.</DialogDescription>
-          </DialogHeader>
-          {renderFormFields()}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
