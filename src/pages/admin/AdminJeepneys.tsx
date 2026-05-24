@@ -59,6 +59,7 @@ interface JeepneyView {
   plateNumber: string;
   driverId: string;
   driverName: string;
+  driverLicense?: string | null;
   route: {
     id: string;
     name: string;
@@ -76,6 +77,7 @@ const mapJeepney = (j: JeepneyData): JeepneyView => ({
   plateNumber: j.plateNumber,
   driverId: j.driver?.id || "",
   driverName: j.driver?.name || "Unassigned",
+  driverLicense: (j.driver as any)?.licenseNumber || null,
   route: {
     id: j.route?.id || "",
     name: j.route?.name || "No route",
@@ -378,6 +380,7 @@ const AdminJeepneys = () => {
                   </div>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <p>Driver: {j.driverName}</p>
+                    <p>License: {j.driverLicense || "—"}</p>
                     <p>Route: {j.route.name}</p>
                     <p>Capacity: {j.capacity}</p>
                   </div>
@@ -405,6 +408,7 @@ const AdminJeepneys = () => {
                     <TableHead>Code</TableHead>
                     <TableHead>Plate</TableHead>
                     <TableHead>Driver</TableHead>
+                    <TableHead>Driver License</TableHead>
                     <TableHead>Route</TableHead>
                     <TableHead>Capacity</TableHead>
                     <TableHead>Status</TableHead>
@@ -416,7 +420,8 @@ const AdminJeepneys = () => {
                     <TableRow key={j.id}>
                       <TableCell className="text-sm font-medium">{j.code}</TableCell>
                       <TableCell className="text-xs">{j.plateNumber}</TableCell>
-                      <TableCell className="text-xs">{j.driverName}</TableCell>
+                        <TableCell className="text-xs">{j.driverName}</TableCell>
+                        <TableCell className="text-xs">{j.driverLicense || "—"}</TableCell>
                       <TableCell className="text-xs">{j.route.name}</TableCell>
                       <TableCell className="text-xs">{j.capacity}</TableCell>
                       <TableCell>

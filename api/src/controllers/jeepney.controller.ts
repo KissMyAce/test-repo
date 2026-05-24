@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { FilterQuery, Types } from "mongoose";
-import { Jeepney, JeepneyModel, RouteModel, UserModel } from "../models";
+import { Jeepney, JeepneyModel, RouteModel, UserModel, DriverProfileModel } from "../models";
 import { AppError } from "../utils/app-error";
 import { asyncHandler } from "../utils/async-handler";
 import { getPublicObjectUrl } from "../utils/object-url";
@@ -90,8 +90,30 @@ export const listJeepneys = asyncHandler(async (req: Request, res: Response) => 
     .populate("driverId", "name email phone")
     .lean();
 
+  // Load driver profiles to surface license numbers alongside driver info
+  const driverIds = jeepneys
+    .map((j) => (j.driverId && typeof j.driverId === "object" ? (j.driverId as any)._id?.toString() : j.driverId))
+    .filter(Boolean) as string[];
+
+  const driverProfiles =
+    driverIds.length > 0
+      ? await DriverProfileModel.find({ userId: { $in: driverIds.map((id) => new Types.ObjectId(id)) } }).lean()
+      : [];
+
+  const profileMap = new Map(driverProfiles.map((p) => [p.userId?.toString(), p]));
+
   res.status(200).json({
-    jeepneys: jeepneys.map((jeepney) => toJeepneyPayload(jeepney)),
+    jeepneys: jeepneys.map((jeepney) => {
+      const payload = toJeepneyPayload(jeepney as any);
+      const driverId = jeepney.driverId && typeof jeepney.driverId === "object" ? (jeepney.driverId as any)._1?._id?.toString() : jeepney.driverId;
+      // fallback: previous line had a typo; compute properly
+      const drvId = jeepney.driverId && typeof jeepney.driverId === "object" ? (jeepney.driverId as any)._id?.toString() : jeepney.driverId;
+      const profile = drvId ? profileMap.get(drvId) : null;
+      if (payload.driver) {
+        (payload.driver as any).licenseNumber = profile?.licenseNumber || null;
+      }
+      return payload;
+    }),
   });
 });
 
@@ -145,8 +167,28 @@ export const listAdminJeepneys = asyncHandler(async (req: Request, res: Response
     .populate("driverId", "name email phone")
     .lean();
 
+  // Attach driver license numbers from DriverProfileModel
+  const driverIds = jeepneys
+    .map((j) => (j.driverId && typeof j.driverId === "object" ? (j.driverId as any)._id?.toString() : j.driverId))
+    .filter(Boolean) as string[];
+
+  const driverProfiles =
+    driverIds.length > 0
+      ? await DriverProfileModel.find({ userId: { $in: driverIds.map((id) => new Types.ObjectId(id)) } }).lean()
+      : [];
+
+  const profileMap = new Map(driverProfiles.map((p) => [p.userId?.toString(), p]));
+
   res.status(200).json({
-    jeepneys: jeepneys.map((jeepney) => toJeepneyPayload(jeepney)),
+    jeepneys: jeepneys.map((jeepney) => {
+      const payload = toJeepneyPayload(jeepney as any);
+      const drvId = jeepney.driverId && typeof jeepney.driverId === "object" ? (jeepney.driverId as any)._id?.toString() : jeepney.driverId;
+      const profile = drvId ? profileMap.get(drvId) : null;
+      if (payload.driver) {
+        (payload.driver as any).licenseNumber = profile?.licenseNumber || null;
+      }
+      return payload;
+    }),
   });
 });
 
