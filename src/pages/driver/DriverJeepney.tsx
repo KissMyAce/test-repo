@@ -383,9 +383,9 @@ const DriverJeepney = () => {
                   <SelectValue placeholder="Select route 1" />
                 </SelectTrigger>
                 <SelectContent>
-                  {routes.map((route, index) => (
+                  {routes.map((route) => (
                     <SelectItem key={route.id} value={route.id}>
-                      Route {index + 1}: {route.origin} → {route.destination}
+                      {route.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -568,11 +568,11 @@ const DriverJeepney = () => {
                     <SelectValue placeholder="Select route 1" />
                   </SelectTrigger>
                   <SelectContent>
-                    {routes.map((route, index) => (
-                      <SelectItem key={route.id} value={route.id}>
-                        Route {index + 1}: {route.origin} → {route.destination}
-                      </SelectItem>
-                    ))}
+                    {routes.map((route) => (
+                        <SelectItem key={route.id} value={route.id}>
+                          {route.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 {errors.route1Id && (
