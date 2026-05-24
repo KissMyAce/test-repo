@@ -375,7 +375,6 @@ const DriverJeepney = () => {
                   setForm((prev) => ({
                     ...prev,
                     route1Id: value,
-                    route2Id: findReverseRouteId(value, routes),
                   }))
                 }
               >
@@ -399,16 +398,18 @@ const DriverJeepney = () => {
 
             <div className="space-y-1.5">
               <Label className="text-xs">Route 2</Label>
-              <Input
-                value={
-                  selectedRoute2
-                    ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
-                    : form.route1Id
-                    ? "No reverse route available"
-                    : "Select Route 1 first"
-                }
-                disabled
-              />
+              <Select value={form.route2Id} onValueChange={(value) => setForm((prev) => ({ ...prev, route2Id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder={form.route1Id ? "Select route 2" : "Select Route 1 first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {routes.map((route) => (
+                    <SelectItem key={route.id} value={route.id}>
+                      {route.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -560,7 +561,6 @@ const DriverJeepney = () => {
                     setForm((prev) => ({
                       ...prev,
                       route1Id: value,
-                      route2Id: findReverseRouteId(value, routes),
                     }))
                   }
                 >
@@ -584,16 +584,18 @@ const DriverJeepney = () => {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Route 2</Label>
-                <Input
-                  value={
-                    selectedRoute2
-                      ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
-                      : form.route1Id
-                      ? "No reverse route available"
-                      : "Select Route 1 first"
-                  }
-                  disabled
-                />
+                <Select value={form.route2Id} onValueChange={(value) => setForm((prev) => ({ ...prev, route2Id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={form.route1Id ? "Select route 2" : "Select Route 1 first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {routes.map((route) => (
+                      <SelectItem key={route.id} value={route.id}>
+                        {route.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex gap-2 pt-2">
