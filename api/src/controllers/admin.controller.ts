@@ -403,3 +403,56 @@ export const rejectDriver = asyncHandler(async (req: Request, res: Response) => 
 
   res.status(200).json({ message: "Driver rejected" });
 });
+
+export const approveJeepney = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.authUser) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+  }
+
+  const { jeepneyId } = req.params;
+  const { reviewNotes } = req.body as { reviewNotes?: string };
+
+  const jeepney = await JeepneyModel.findById(jeepneyId);
+  if (!jeepney || jeepney.status !== "inactive") {
+    throw new AppError(404, "JEEPNEY_NOT_FOUND", "Jeepney not found or already approved");
+  }
+
+  jeepney.status = "active";
+  await jeepney.save();
+
+  await createAuditLog({
+    actorUserId: req.authUser.id,
+    action: "JEEPNEY_APPROVED",
+    targetType: "jeepney",
+    targetId: jeepneyId,
+    meta: { reviewNotes: reviewNotes?.trim() || null },
+  });
+
+  res.status(200).json({ message: "Jeepney approved" });
+});
+
+export const rejectJeepney = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.authUser) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+  }
+
+  const { jeepneyId } = req.params;
+  const { reason } = req.body as { reason: string };
+
+  const jeepney = await JeepneyModel.findById(jeepneyId);
+  if (!jeepney || jeepney.status !== "inactive") {
+    throw new AppError(404, "JEEPNEY_NOT_FOUND", "Jeepney not found or already rejected");
+  }
+
+  await JeepneyModel.findByIdAndDelete(jeepneyId);
+
+  await createAuditLog({
+    actorUserId: req.authUser.id,
+    action: "JEEPNEY_REJECTED",
+    targetType: "jeepney",
+    targetId: jeepneyId,
+    meta: { reason: reason.trim() },
+  });
+
+  res.status(200).json({ message: "Jeepney rejected" });
+});

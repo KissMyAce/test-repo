@@ -23,6 +23,26 @@ export const rejectDriverSchema = z.object({
   query: z.object({}),
 });
 
+export const approveJeepneySchema = z.object({
+  body: z.object({
+    reviewNotes: z.string().optional(),
+  }),
+  params: z.object({
+    jeepneyId: z.string().min(1),
+  }),
+  query: z.object({}),
+});
+
+export const rejectJeepneySchema = z.object({
+  body: z.object({
+    reason: z.string().min(1),
+  }),
+  params: z.object({
+    jeepneyId: z.string().min(1),
+  }),
+  query: z.object({}),
+});
+
 export const listAdminUsersSchema = z.object({
   body: z.object({}),
   params: z.object({}),

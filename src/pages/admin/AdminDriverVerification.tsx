@@ -11,12 +11,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   approveDriverRequest,
+  approveJeepneyRequest,
   createAdminUserRequest,
   deleteAdminUserRequest,
   getAdminUsersRequest,
   getAdminJeepneysRequest,
   getDriverDocumentUrlRequest,
   getPendingDriversRequest,
+  rejectDriverRequest,
+  rejectJeepneyRequest,
   updateAdminUserRequest,
   PendingDriverProfile,
   AdminUser,
@@ -65,6 +68,8 @@ const AdminDriverVerification = () => {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [form, setForm] = useState(defaultFormState);
   const [reasonByUserId, setReasonByUserId] = useState<Record<string, string>>({});
+  const [reasonByJeepneyId, setReasonByJeepneyId] = useState<Record<string, string>>({});
+  const [busyJeepneyId, setBusyJeepneyId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const filteredPendingDrivers = useMemo(
@@ -77,6 +82,22 @@ const AdminDriverVerification = () => {
         );
       }),
     [pendingDrivers, search]
+  );
+
+  const filteredPendingJeepneys = useMemo(
+    () =>
+      pendingJeepneys.filter((jeepney) => {
+        if (!search.trim()) return true;
+        const text = search.toLowerCase();
+        return [
+          jeepney.code || "",
+          jeepney.plateNumber || "",
+          jeepney.route?.name || "",
+          jeepney.driver?.name || "",
+          jeepney.driver?.email || "",
+        ].some((value) => value.toLowerCase().includes(text));
+      }),
+    [pendingJeepneys, search]
   );
 
   const loadUsers = async () => {
@@ -283,6 +304,45 @@ const AdminDriverVerification = () => {
     }
   };
 
+  const handleApproveJeepney = async (jeepney: JeepneyData) => {
+    const jeepneyId = jeepney.id;
+    setBusyJeepneyId(jeepneyId);
+    try {
+      await approveJeepneyRequest(jeepneyId, {
+        reviewNotes: reasonByJeepneyId[jeepneyId]?.trim() || undefined,
+      });
+      setPendingJeepneys((prev) => prev.filter((item) => item.id !== jeepneyId));
+      toast({ title: "Jeepney approved", description: "Jeepney now appears in the admin jeepneys list." });
+    } catch (error) {
+      let description = "Unable to approve jeepney.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Approval failed", description, variant: "destructive" });
+    } finally {
+      setBusyJeepneyId(null);
+    }
+  };
+
+  const handleRejectJeepney = async (jeepney: JeepneyData) => {
+    const jeepneyId = jeepney.id;
+    const reason = reasonByJeepneyId[jeepneyId]?.trim() || "Jeepney application did not pass verification.";
+    setBusyJeepneyId(jeepneyId);
+    try {
+      await rejectJeepneyRequest(jeepneyId, { reason });
+      setPendingJeepneys((prev) => prev.filter((item) => item.id !== jeepneyId));
+      toast({ title: "Jeepney rejected", description: "Jeepney application has been rejected." });
+    } catch (error) {
+      let description = "Unable to reject jeepney.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Rejection failed", description, variant: "destructive" });
+    } finally {
+      setBusyJeepneyId(null);
+    }
+  };
+
   const activeUsers = useMemo(() => users, [users]);
 
   return (
@@ -458,7 +518,7 @@ const AdminDriverVerification = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading pending verification items...
                 </div>
-              ) : filteredPendingDrivers.length === 0 && pendingJeepneys.length === 0 ? (
+              ) : filteredPendingDrivers.length === 0 && filteredPendingJeepneys.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-6">No pending driver or jeepney applications.</div>
               ) : (
                 <div className="space-y-6">
@@ -560,33 +620,66 @@ const AdminDriverVerification = () => {
                     </div>
                   ) : null}
 
-                  {pendingJeepneys.length > 0 ? (
+                  {filteredPendingJeepneys.length > 0 ? (
                     <div className="space-y-4">
                       <p className="text-sm font-semibold text-foreground">Pending jeepney applications</p>
                       <div className="space-y-4">
-                        {pendingJeepneys.map((jeepney) => (
-                          <div key={jeepney.id} className="rounded-xl border border-border p-4 space-y-3">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
-                                <p className="text-sm font-semibold text-foreground">{jeepney.name || jeepney.code || "Unnamed jeepney"}</p>
-                                <p className="text-xs text-muted-foreground">Plate: {jeepney.plateNumber || "N/A"}</p>
-                                <p className="text-xs text-muted-foreground">Route: {jeepney.route?.name || jeepney.routeName || "Unknown route"}</p>
-                                <p className="text-xs text-muted-foreground">Capacity: {jeepney.capacity || "N/A"}</p>
-                                <p className="text-xs text-muted-foreground">Driver: {jeepney.driver?.name || jeepney.driverName || "Unknown"}</p>
+                        {filteredPendingJeepneys.map((jeepney) => {
+                          const isBusy = busyJeepneyId === jeepney.id;
+                          return (
+                            <div key={jeepney.id} className="rounded-xl border border-border p-4 space-y-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-foreground">{jeepney.code || "Unnamed jeepney"}</p>
+                                  <p className="text-xs text-muted-foreground">Plate: {jeepney.plateNumber || "N/A"}</p>
+                                  <p className="text-xs text-muted-foreground">Route: {jeepney.route?.name || "Unknown route"}</p>
+                                  <p className="text-xs text-muted-foreground">Capacity: {jeepney.capacity || "N/A"}</p>
+                                  <p className="text-xs text-muted-foreground">Driver: {jeepney.driver?.name || jeepney.driver?.email || "Unknown"}</p>
+                                </div>
+                                <Badge className="bg-warning text-warning-foreground">Pending</Badge>
                               </div>
-                              <Badge className="bg-warning text-warning-foreground">Pending</Badge>
+                              {jeepney.photoUrl ? (
+                                <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
+                                  <img src={jeepney.photoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
+                                </div>
+                              ) : jeepney.photoKey ? (
+                                <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
+                                  Jeepney photo uploaded, no preview URL available.
+                                </div>
+                              ) : null}
+
+                              <div className="space-y-2">
+                                <Label className="text-xs text-muted-foreground">Review Note / Rejection Reason</Label>
+                                <Input
+                                  value={reasonByJeepneyId[jeepney.id] || ""}
+                                  onChange={(e) =>
+                                    setReasonByJeepneyId((prev) => ({
+                                      ...prev,
+                                      [jeepney.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Optional for approve, used as reason for reject"
+                                  className="rounded-xl h-10"
+                                />
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <Button onClick={() => void handleApproveJeepney(jeepney)} disabled={isBusy}>
+                                  {isBusy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="border-destructive text-destructive hover:bg-destructive/5"
+                                  onClick={() => void handleRejectJeepney(jeepney)}
+                                  disabled={isBusy}
+                                >
+                                  <X className="w-4 h-4 mr-1" /> Reject
+                                </Button>
+                              </div>
                             </div>
-                            {jeepney.photoUrl ? (
-                              <div className="w-full max-w-sm overflow-hidden rounded-xl bg-secondary">
-                                <img src={jeepney.photoUrl} alt="Jeepney photo" className="w-full h-40 object-cover" />
-                              </div>
-                            ) : jeepney.photoKey ? (
-                              <div className="rounded-xl bg-secondary p-4 text-sm text-muted-foreground">
-                                Jeepney photo uploaded, no preview URL available.
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null}

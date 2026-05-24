@@ -319,6 +319,12 @@ export const approveDriverRequest = (userId: string, payload?: { reviewNotes?: s
 export const rejectDriverRequest = (userId: string, payload: { reason: string }) =>
   apiClient.patch(`/admin/drivers/${userId}/reject`, payload);
 
+export const approveJeepneyRequest = (jeepneyId: string, payload?: { reviewNotes?: string }) =>
+  apiClient.patch(`/admin/jeepneys/${jeepneyId}/approve`, payload || {});
+
+export const rejectJeepneyRequest = (jeepneyId: string, payload: { reason: string }) =>
+  apiClient.patch(`/admin/jeepneys/${jeepneyId}/reject`, payload);
+
 export const getRoutesRequest = (query?: { search?: string; isActive?: boolean }) => {
   const params = new URLSearchParams();
   if (query?.search?.trim()) {
