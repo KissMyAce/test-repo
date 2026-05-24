@@ -8,6 +8,7 @@ import {
   listJeepneys,
   updateJeepney,
   updateMyJeepney,
+  createMyJeepney,
 } from "../controllers/jeepney.controller";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
@@ -17,6 +18,7 @@ import {
   listJeepneysSchema,
   updateJeepneySchema,
   updateMyJeepneySchema,
+  createMyJeepneySchema,
 } from "../validators/jeepney.validator";
 
 export const jeepneyRouter = Router();
@@ -35,3 +37,4 @@ adminJeepneyRouter.delete("/:jeepneyId", validate(getJeepneyByIdSchema), deleteJ
 driverJeepneyRouter.use(requireAuth, requireRole("driver"));
 driverJeepneyRouter.get("/me", getMyJeepney);
 driverJeepneyRouter.patch("/me", validate(updateMyJeepneySchema), updateMyJeepney);
+driverJeepneyRouter.post("/apply", validate(createMyJeepneySchema), createMyJeepney);

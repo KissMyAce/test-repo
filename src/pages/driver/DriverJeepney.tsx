@@ -31,6 +31,7 @@ import {
   presignUploadRequest,
   RouteData,
   updateMyJeepneyRequest,
+  applyMyJeepneyRequest,
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 
@@ -262,17 +263,150 @@ const DriverJeepney = () => {
   }
 
   if (!hasJeepney || !jeepney) {
+    const handleApply = async () => {
+      if (!validate()) return;
+
+      setSaving(true);
+      try {
+        const payload = await applyMyJeepneyRequest({
+          code: form.code.trim(),
+          plateNumber: form.plateNumber.trim(),
+          routeId: form.routeId,
+          capacity: form.capacity,
+          photoKey: form.photoKey || undefined,
+        });
+
+        setJeepney(payload.jeepney);
+        setForm(toForm(payload.jeepney));
+        setHasJeepney(true);
+        setEditing(false);
+        setErrors({});
+        toast({ title: "Submitted", description: "Jeepney application submitted to admin." });
+      } catch (error) {
+        let description = "Unable to submit application.";
+        if (error instanceof ApiError && error.status === 400) {
+          description = "Invalid fields. Please check the form values.";
+        } else if (error instanceof ApiError && error.status >= 500) {
+          description = "Server error. Please try again shortly.";
+        }
+        toast({ title: "Submit failed", description, variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+    };
+
     return (
-      <div className="p-4 lg:p-6 flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="icon-badge-lg mx-auto bg-muted text-muted-foreground">
-            <Bus className="w-7 h-7" />
-          </div>
-          <h2 className="text-lg font-semibold text-foreground">No Jeepney Assigned</h2>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Contact your admin to assign a jeepney to your account.
-          </p>
-        </div>
+      <div className="p-4 lg:p-6 max-w-2xl">
+        <h1 className="text-xl font-bold text-foreground">Apply for a Jeepney</h1>
+
+        <Card className="card-shadow border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Jeepney Application</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Jeepney Code</Label>
+              <Input
+                value={form.code}
+                onChange={(event) => setForm((prev) => ({ ...prev, code: event.target.value }))}
+                className={errors.code ? "border-destructive" : ""}
+              />
+              {errors.code && (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.code}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Plate Number</Label>
+              <Input
+                value={form.plateNumber}
+                onChange={(event) => setForm((prev) => ({ ...prev, plateNumber: event.target.value }))}
+                className={errors.plateNumber ? "border-destructive" : ""}
+              />
+              {errors.plateNumber && (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.plateNumber}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Capacity</Label>
+              <Input
+                type="number"
+                min={1}
+                max={40}
+                value={form.capacity}
+                onChange={(event) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    capacity: Number.parseInt(event.target.value, 10) || 0,
+                  }))
+                }
+                className={errors.capacity ? "border-destructive" : ""}
+              />
+              {errors.capacity && (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.capacity}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Route</Label>
+              <Select value={form.routeId} onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}>
+                <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
+                  <SelectValue placeholder="Select route" />
+                </SelectTrigger>
+                <SelectContent>
+                  {routes.map((route) => (
+                    <SelectItem key={route.id} value={route.id}>
+                      {route.name} - {route.origin} to {route.destination}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.routeId && (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.routeId}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Photo</Label>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => fileInputRef.current?.click()} disabled={uploadingPhoto}>
+                  {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />} Upload Photo
+                </Button>
+                {form.photoKey && <span className="text-sm text-muted-foreground">Photo uploaded</span>}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png"
+                className="hidden"
+                onChange={(event) => void handlePhotoChange(event)}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button className="flex-1" onClick={() => void handleApply()} disabled={saving}>
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" /> Submit Application
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -71,3 +71,15 @@ export const updateMyJeepneySchema = z.object({
   params: z.object({}),
   query: z.object({}),
 });
+
+export const createMyJeepneySchema = z.object({
+  body: z.object({
+    code: z.string().min(1),
+    plateNumber: z.string().min(1),
+    routeId: objectIdSchema,
+    capacity: z.number().int().min(1).max(40),
+    photoKey: z.string().min(1).optional(),
+  }),
+  params: z.object({}),
+  query: z.object({}),
+});

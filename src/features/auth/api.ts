@@ -419,6 +419,14 @@ export const updateMyJeepneyRequest = (payload: {
   photoKey?: string | null;
 }) => apiClient.patch<{ jeepney: JeepneyData }>("/driver/jeepney/me", payload);
 
+export const applyMyJeepneyRequest = (payload: {
+  code: string;
+  plateNumber: string;
+  routeId: string;
+  capacity: number;
+  photoKey?: string;
+}) => apiClient.post<{ jeepney: JeepneyData }>("/driver/jeepney/apply", payload);
+
 export const getSchedulesRequest = (query?: {
   routeId?: string;
   jeepneyId?: string;

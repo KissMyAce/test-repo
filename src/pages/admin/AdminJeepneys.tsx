@@ -330,7 +330,7 @@ const AdminJeepneys = () => {
     <div className="p-4 lg:p-6 space-y-4 lg:space-y-6 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Approved Jeepneys</h1>
+          <h1 className="text-xl font-bold text-foreground">Jeepneys</h1>
           <p className="text-sm text-muted-foreground">Showing approved/active jeepneys in the admin dashboard.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -370,6 +370,15 @@ const AdminJeepneys = () => {
               <Card key={j.id} className="card-shadow border-0">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-2">
+                    <div className="w-24 h-16 rounded-md overflow-hidden bg-secondary flex-shrink-0">
+                      {j.photoUrl ? (
+                        <img src={j.photoUrl} alt={j.code} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-primary/40">
+                          <Bus className="w-6 h-6" />
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-1 min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">{j.code}</p>
                       <p className="text-xs text-muted-foreground">{j.plateNumber}</p>
@@ -405,6 +414,7 @@ const AdminJeepneys = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Photo</TableHead>
                     <TableHead>Code</TableHead>
                     <TableHead>Plate</TableHead>
                     <TableHead>Driver</TableHead>
@@ -418,6 +428,17 @@ const AdminJeepneys = () => {
                 <TableBody>
                   {filtered.map((j) => (
                     <TableRow key={j.id}>
+                      <TableCell>
+                        <div className="w-16 h-10 rounded-md overflow-hidden bg-secondary">
+                          {j.photoUrl ? (
+                            <img src={j.photoUrl} alt={j.code} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-primary/40">
+                              <Bus className="w-5 h-5" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-sm font-medium">{j.code}</TableCell>
                       <TableCell className="text-xs">{j.plateNumber}</TableCell>
                         <TableCell className="text-xs">{j.driverName}</TableCell>
@@ -495,9 +516,13 @@ const AdminJeepneys = () => {
           </SheetHeader>
           {selected && (
             <div className="space-y-6 mt-6">
-              <div className="w-full h-40 rounded-2xl bg-secondary flex items-center justify-center">
-                <Bus className="w-16 h-16 text-primary/40" />
-              </div>
+                  <div className="w-full h-40 rounded-2xl bg-secondary flex items-center justify-center overflow-hidden">
+                    {selected.photoUrl ? (
+                      <img src={selected.photoUrl} alt={selected.code} className="w-full h-full object-cover" />
+                    ) : (
+                      <Bus className="w-16 h-16 text-primary/40" />
+                    )}
+                  </div>
               <div className="space-y-4">
                 {[
                   { label: "Code", value: selected.code },

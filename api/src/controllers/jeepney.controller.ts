@@ -350,3 +350,37 @@ export const updateMyJeepney = asyncHandler(async (req: Request, res: Response) 
 
   res.status(200).json({ jeepney: toJeepneyPayload(populated || jeepney) });
 });
+
+export const createMyJeepney = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.authUser) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+  }
+
+  const { code, plateNumber, routeId, capacity, photoKey } = req.body as {
+    code: string;
+    plateNumber: string;
+    routeId: string;
+    capacity: number;
+    photoKey?: string;
+  };
+
+  await ensureRouteExists(routeId);
+
+  // create jeepney record assigned to this driver, default to inactive so admin approves
+  const jeepney = await JeepneyModel.create({
+    code: code.trim(),
+    plateNumber: plateNumber.trim(),
+    routeId: new Types.ObjectId(routeId),
+    driverId: new Types.ObjectId(req.authUser.id),
+    capacity,
+    status: "inactive",
+    photoKey: photoKey?.trim() || null,
+  });
+
+  const populated = await JeepneyModel.findById(jeepney._id)
+    .populate("routeId", "name origin destination")
+    .populate("driverId", "name email phone")
+    .lean();
+
+  res.status(201).json({ jeepney: toJeepneyPayload(populated || jeepney) });
+});
