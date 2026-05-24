@@ -246,6 +246,7 @@ const DriverJeepney = () => {
   };
 
   const selectedRoute = routes.find((route) => route.id === form.routeId);
+  const selectedRouteIndex = selectedRoute ? routes.findIndex((route) => route.id === selectedRoute.id) : -1;
 
   if (loading) {
     return (
@@ -359,9 +360,9 @@ const DriverJeepney = () => {
                   <SelectValue placeholder="Select route" />
                 </SelectTrigger>
                 <SelectContent>
-                  {routes.map((route) => (
+                  {routes.map((route, index) => (
                     <SelectItem key={route.id} value={route.id}>
-                      {route.name} - {route.origin} to {route.destination}
+                      Route {index + 1}: {route.origin} → {route.destination}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -524,9 +525,9 @@ const DriverJeepney = () => {
                     <SelectValue placeholder="Select route" />
                   </SelectTrigger>
                   <SelectContent>
-                    {routes.map((route) => (
+                    {routes.map((route, index) => (
                       <SelectItem key={route.id} value={route.id}>
-                        {route.name} - {route.origin} to {route.destination}
+                        Route {index + 1}: {route.origin} → {route.destination}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -568,7 +569,7 @@ const DriverJeepney = () => {
                 label="Route"
                 value={
                   selectedRoute
-                    ? `${selectedRoute.name} - ${selectedRoute.origin} to ${selectedRoute.destination}`
+                    ? `Route ${selectedRouteIndex + 1}: ${selectedRoute.origin} → ${selectedRoute.destination}`
                     : "-"
                 }
                 icon={<MapPin className="w-3 h-3 text-primary" />}

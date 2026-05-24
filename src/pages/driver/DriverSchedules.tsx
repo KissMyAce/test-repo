@@ -314,9 +314,9 @@ const DriverSchedules = () => {
             <SelectValue placeholder="Select route" />
           </SelectTrigger>
           <SelectContent>
-            {selectedRouteOptions.map((route) => (
+            {selectedRouteOptions.map((route, index) => (
               <SelectItem key={route.id} value={route.id}>
-                {route.origin} → {route.destination}
+                Route {index + 1}: {route.origin} → {route.destination}
               </SelectItem>
             ))}
           </SelectContent>
@@ -443,9 +443,9 @@ const DriverSchedules = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All routes</SelectItem>
-            {routeList.map((route) => (
+            {routeList.map((route, index) => (
               <SelectItem key={route.id} value={route.id}>
-                {route.name}
+                Route {index + 1}: {route.origin} → {route.destination}
               </SelectItem>
             ))}
           </SelectContent>
