@@ -626,20 +626,12 @@ const DriverJeepney = () => {
               <InfoRow label="Plate Number" value={form.plateNumber} />
               <InfoRow
                 label="Route 1"
-                value={
-                  selectedRoute1
-                    ? `Route ${selectedRoute1Index + 1}: ${selectedRoute1.origin} → ${selectedRoute1.destination}`
-                    : "-"
-                }
+                value={selectedRoute1 ? selectedRoute1.name : "-"}
                 icon={<MapPin className="w-3 h-3 text-primary" />}
               />
               <InfoRow
                 label="Route 2"
-                value={
-                  selectedRoute2
-                    ? `Route ${selectedRoute2Index + 1}: ${selectedRoute2.origin} → ${selectedRoute2.destination}`
-                    : "-"
-                }
+                value={selectedRoute2 ? selectedRoute2.name : "-"}
               />
               <InfoRow
                 label="Capacity"
