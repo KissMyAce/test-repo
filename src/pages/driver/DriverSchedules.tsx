@@ -303,38 +303,27 @@ const DriverSchedules = () => {
     }
   }, [myJeepney, form.routeId]);
 
-  const selectedRoute = selectedRouteOptions.length === 1 ? selectedRouteOptions[0] : null;
   const filteredSchedules = useMemo(() => scheduleList, [scheduleList]);
 
   const ScheduleFormFields = () => (
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label className="text-xs">Route</Label>
-        {selectedRoute ? (
-          <div>
-            <Input
-              value={`${selectedRoute.origin} → ${selectedRoute.destination}`}
-              disabled
-              className="cursor-not-allowed"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Your schedule is locked to your assigned route.
-            </p>
-          </div>
-        ) : (
-          <Select value={form.routeId} onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}>
-            <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
-              <SelectValue placeholder="Select route" />
-            </SelectTrigger>
-            <SelectContent>
-              {selectedRouteOptions.map((route) => (
-                <SelectItem key={route.id} value={route.id}>
-                  {route.origin} → {route.destination}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+        <Select value={form.routeId} onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}>
+          <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
+            <SelectValue placeholder="Select route" />
+          </SelectTrigger>
+          <SelectContent>
+            {selectedRouteOptions.map((route) => (
+              <SelectItem key={route.id} value={route.id}>
+                {route.origin} → {route.destination}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {myJeepney?.route?.id && selectedRouteOptions.length === 1 ? (
+          <p className="text-[11px] text-muted-foreground">Only your assigned jeepney route appears here.</p>
+        ) : null}
         {errors.routeId && <p className="text-[11px] text-destructive">{errors.routeId}</p>}
       </div>
 
