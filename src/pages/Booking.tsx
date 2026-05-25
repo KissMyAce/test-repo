@@ -24,6 +24,7 @@ import {
   getRoutesRequest,
   getScheduleByIdRequest,
   getSchedulesRequest,
+  createBookingRequest,
   RouteData,
   ScheduleData,
 } from "@/features/auth/api";
@@ -108,6 +109,7 @@ const Booking = () => {
 
   const [routeSearch, setRouteSearch] = useState("");
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   const maxSeats = selectedSchedule?.availableSeats || 0;
 
@@ -240,8 +242,32 @@ const Booking = () => {
     setStep((value) => value - 1);
   };
 
-  const handleConfirm = () => {
-    navigate("/payment");
+  const handleConfirm = async () => {
+    if (!selectedSchedule || !selectedSchedule.id) {
+      toast({ title: "Error", description: "Please select a schedule", variant: "destructive" });
+      return;
+    }
+
+    setBookingLoading(true);
+    try {
+      const response = await createBookingRequest({
+        scheduleId: selectedSchedule.id,
+        seats,
+      });
+
+      if (response.booking) {
+        toast({ title: "Booking Created", description: "Proceeding to payment..." });
+        navigate(`/payment/${response.booking.id}`);
+      }
+    } catch (error) {
+      let description = "Unable to create booking.";
+      if (error instanceof ApiError && error.status >= 500) {
+        description = "Server error. Please try again shortly.";
+      }
+      toast({ title: "Booking failed", description, variant: "destructive" });
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   const totalPrice = seats * (selectedSchedule?.route.baseFare || DEFAULT_PRICE_PER_SEAT);
@@ -508,8 +534,8 @@ const Booking = () => {
             By confirming, your booking will be created with status <span className="font-semibold text-foreground">pending</span>. You'll be redirected to complete payment.
           </div>
 
-          <Button className="w-full rounded-xl h-12 text-base font-semibold" onClick={handleConfirm}>
-            Confirm & Continue to Payment
+          <Button className="w-full rounded-xl h-12 text-base font-semibold" onClick={handleConfirm} disabled={bookingLoading}>
+            {bookingLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm & Continue to Payment"}
           </Button>
         </div>
       )}

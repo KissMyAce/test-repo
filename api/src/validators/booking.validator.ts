@@ -81,3 +81,14 @@ export const listDriverBookingsSchema = z.object({
     to: z.coerce.date().optional(),
   }),
 });
+
+export const confirmPaymentSchema = z.object({
+  body: z.object({
+    paymentMethod: z.enum(["gcash", "maya"]),
+    paymentReference: z.string().trim().min(1).optional(),
+  }),
+  params: z.object({
+    bookingId: objectIdSchema,
+  }),
+  query: z.object({}).optional(),
+});

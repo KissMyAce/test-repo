@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   cancelMyBooking,
+  confirmPayment,
   createBooking,
   getMyBookingById,
   listAdminBookings,
@@ -12,6 +13,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 import { validate } from "../middleware/validate";
 import {
   cancelMyBookingSchema,
+  confirmPaymentSchema,
   createBookingSchema,
   getMyBookingByIdSchema,
   listAdminBookingsSchema,
@@ -28,6 +30,7 @@ bookingRouter.use(requireAuth, requireRole("passenger"));
 bookingRouter.post("/", validate(createBookingSchema), createBooking);
 bookingRouter.get("/me", validate(listMyBookingsSchema), listMyBookings);
 bookingRouter.get("/me/:bookingId", validate(getMyBookingByIdSchema), getMyBookingById);
+bookingRouter.patch("/me/:bookingId/confirm-payment", validate(confirmPaymentSchema), confirmPayment);
 bookingRouter.patch("/me/:bookingId/cancel", validate(cancelMyBookingSchema), cancelMyBooking);
 
 adminBookingRouter.use(requireAuth, requireRole("admin"));

@@ -536,3 +536,85 @@ export const updateMyScheduleRequest = (
 
 export const deleteMyScheduleRequest = (scheduleId: string) =>
   apiClient.delete<{ message: string }>(`/driver/schedules/me/${scheduleId}`);
+
+// Booking API functions
+export interface BookingPayload {
+  id: string;
+  bookingRef: string;
+  seats: number;
+  unitFare: number;
+  totalFare: number;
+  status: "pending" | "confirmed" | "cancelled" | "failed_payment";
+  cancelReason?: string | null;
+  routeSnapshot?: {
+    name: string;
+    origin: string;
+    destination: string;
+  };
+  jeepneySnapshot?: {
+    code: string;
+    plateNumber: string;
+    capacity: number;
+  };
+  passenger?: {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string | null;
+  };
+  schedule?: {
+    id: string;
+    departureAt?: string;
+    arrivalAt?: string;
+    status: string;
+    route?: {
+      id: string;
+      name: string;
+      origin: string;
+      destination: string;
+      baseFare: number;
+    };
+    jeepney?: {
+      id: string;
+      code: string;
+      plateNumber: string;
+      capacity: number;
+      status: string;
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const createBookingRequest = (payload: { scheduleId: string; seats: number }) =>
+  apiClient.post<{ booking: BookingPayload }>(`/bookings`, payload);
+
+export const getMyBookingsRequest = (query?: {
+  status?: "pending" | "confirmed" | "cancelled" | "failed_payment";
+  bookingRef?: string;
+  scheduleId?: string;
+  from?: string;
+  to?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (query?.status) params.set("status", query.status);
+  if (query?.bookingRef?.trim()) params.set("bookingRef", query.bookingRef.trim());
+  if (query?.scheduleId) params.set("scheduleId", query.scheduleId);
+  if (query?.from) params.set("from", query.from);
+  if (query?.to) params.set("to", query.to);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiClient.get<{ bookings: BookingPayload[] }>(`/bookings/me${suffix}`);
+};
+
+export const getMyBookingByIdRequest = (bookingId: string) =>
+  apiClient.get<{ booking: BookingPayload }>(`/bookings/me/${bookingId}`);
+
+export const confirmPaymentRequest = (
+  bookingId: string,
+  payload: { paymentMethod: "gcash" | "maya"; paymentReference?: string }
+) => apiClient.patch<{ booking: BookingPayload; message: string }>(`/bookings/me/${bookingId}/confirm-payment`, payload);
+
+export const cancelMyBookingRequest = (
+  bookingId: string,
+  payload: { reason?: string }
+) => apiClient.patch<{ booking: BookingPayload }>(`/bookings/me/${bookingId}/cancel`, payload);

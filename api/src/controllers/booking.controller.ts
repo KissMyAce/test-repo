@@ -250,6 +250,37 @@ export const createBooking = asyncHandler(async (req: Request, res: Response) =>
   res.status(201).json({ booking: toBookingPayload(hydrated) });
 });
 
+export const confirmPayment = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.authUser) {
+    throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+  }
+
+  const bookingId = toObjectId(req.params.bookingId, "INVALID_BOOKING_ID", "Invalid booking id");
+  const { paymentMethod } = req.body as { paymentMethod: string; paymentReference?: string };
+
+  // Verify booking belongs to the authenticated user
+  const existing = await BookingModel.findOne({
+    _id: bookingId,
+    passengerId: new Types.ObjectId(req.authUser.id),
+  }).select("_id status");
+
+  if (!existing) {
+    throw new AppError(404, "BOOKING_NOT_FOUND", "Booking not found");
+  }
+
+  if (existing.status !== "pending") {
+    throw new AppError(400, "INVALID_BOOKING_STATE", "Only pending bookings can be confirmed via payment");
+  }
+
+  // Transition booking from pending to confirmed
+  const updated = await transitionBookingStatus({
+    bookingId,
+    nextStatus: "confirmed",
+  });
+
+  res.status(200).json({ booking: toBookingPayload(updated), message: "Payment confirmed successfully" });
+});
+
 export const listMyBookings = asyncHandler(async (req: Request, res: Response) => {
   if (!req.authUser) {
     throw new AppError(401, "UNAUTHORIZED", "Authentication required");
