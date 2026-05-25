@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 const featureCards = [
   { icon: Calendar, label: "Schedules", to: "/schedules" },
   { icon: Bus, label: "Jeepneys", to: "/jeepneys" },
-  { icon: CreditCard, label: "Payments", to: "/payment" },
+
   { icon: Ticket, label: "Booking", to: "/my-bookings" },
 ];
 

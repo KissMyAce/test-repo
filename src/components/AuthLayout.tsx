@@ -18,7 +18,6 @@ const sidebarLinks = [
   { to: "/schedules", icon: Calendar, label: "Schedules" },
   { to: "/jeepneys", icon: Bus, label: "Jeepneys" },
   { to: "/my-bookings", icon: Ticket, label: "My Bookings" },
-  { to: "/payment", icon: CreditCard, label: "Payments" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/profile", icon: User, label: "Profile" },
 ];
