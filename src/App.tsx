@@ -74,8 +74,8 @@ const App = () => (
                   <Route path="/my-bookings" element={<MyBookings />} />
                   <Route path="/my-bookings/:id" element={<BookingDetail />} />
                   <Route path="/booking" element={<Booking />} />
-                  <Route path="/payment" element={<Payment />} />
-                  <Route path="/payment/status" element={<PaymentStatus />} />
+                  <Route path="/payment/:bookingId" element={<Payment />} />
+                  <Route path="/payment/status/:bookingId" element={<PaymentStatus />} />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/profile" element={<Profile />} />
                 </Route>
