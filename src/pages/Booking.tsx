@@ -250,6 +250,12 @@ const Booking = () => {
 
     setBookingLoading(true);
     try {
+      // Log for debugging
+      console.log("Creating booking with:", {
+        scheduleId: selectedSchedule.id,
+        seats,
+      });
+
       const response = await createBookingRequest({
         scheduleId: selectedSchedule.id,
         seats,
@@ -260,10 +266,52 @@ const Booking = () => {
         navigate(`/payment/${response.booking.id}`);
       }
     } catch (error) {
+      console.error("Booking creation error:", error);
       let description = "Unable to create booking.";
-      if (error instanceof ApiError && error.status >= 500) {
-        description = "Server error. Please try again shortly.";
+      
+      if (error instanceof ApiError) {
+        console.error("API Error Details:", {
+          status: error.status,
+          payload: error.payload,
+        });
+        
+        // Try to extract error message from API response
+        if (error.payload && typeof error.payload === "object") {
+          const payload = error.payload as any;
+          
+          // Handle Zod validation errors
+          if (payload.error === "VALIDATION_ERROR" && payload.issues) {
+            const issues = payload.issues;
+            const fieldErrors = issues.fieldErrors || {};
+            const errors: string[] = [];
+            
+            // Extract all field errors
+            Object.entries(fieldErrors).forEach(([field, messages]: [string, any]) => {
+              if (Array.isArray(messages)) {
+                errors.push(...messages);
+              }
+            });
+            
+            if (errors.length > 0) {
+              description = errors.join(", ");
+            }
+          } else if (payload.message) {
+            description = payload.message;
+          } else if (payload.error) {
+            description = payload.error;
+          } else if (payload.errors) {
+            const errorMessages = Object.values(payload.errors).filter(Boolean);
+            if (errorMessages.length > 0) {
+              description = errorMessages.join(", ");
+            }
+          }
+        }
+        
+        if (error.status >= 500) {
+          description = "Server error. Please try again shortly.";
+        }
       }
+      
       toast({ title: "Booking failed", description, variant: "destructive" });
     } finally {
       setBookingLoading(false);
