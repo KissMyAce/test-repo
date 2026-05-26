@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, CheckCircle, AlertCircle, Clock, Loader2 } from "lucide-react";
+import { Bell, CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -7,15 +7,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   getPendingDriversRequest,
   getAdminJeepneysRequest,
-  getAdminSchedulesRequest,
-  getBookingsRequest,
 } from "@/features/auth/api";
 
 interface AdminNotification {
   id: string;
   title: string;
   message: string;
-  type: "driver_verification" | "jeepney_verification" | "booking" | "system";
+  type: "driver_verification" | "jeepney_verification" | "system";
   read: boolean;
   createdAt: string;
   actionUrl?: string;
@@ -24,14 +22,12 @@ interface AdminNotification {
 const typeIcons: Record<AdminNotification["type"], typeof Bell> = {
   driver_verification: AlertCircle,
   jeepney_verification: AlertCircle,
-  booking: Clock,
   system: Bell,
 };
 
 const typeColors: Record<AdminNotification["type"], string> = {
   driver_verification: "bg-[hsl(217_72%_92%)] text-primary",
   jeepney_verification: "bg-[hsl(217_72%_92%)] text-primary",
-  booking: "bg-[hsl(152_60%_90%)] text-[hsl(152_60%_32%)]",
   system: "bg-muted text-muted-foreground",
 };
 
@@ -76,27 +72,6 @@ const AdminNotifications = () => {
             createdAt: new Date().toISOString(),
             actionUrl: "/admin/jeepneys",
           });
-        }
-
-        // Fetch recent bookings
-        try {
-          const bookingsPayload = await getBookingsRequest({
-            status: "pending",
-          });
-          const pendingBookings = bookingsPayload.bookings || [];
-          if (pendingBookings.length > 0) {
-            newNotifications.push({
-              id: `booking_pending_${Date.now()}`,
-              title: "Pending Bookings",
-              message: `${pendingBookings.length} booking(s) awaiting confirmation`,
-              type: "booking",
-              read: false,
-              createdAt: new Date().toISOString(),
-              actionUrl: "/admin/bookings",
-            });
-          }
-        } catch {
-          // Bookings endpoint might not exist yet
         }
 
         if (!mounted) return;

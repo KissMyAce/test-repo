@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Bell, CheckCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
