@@ -101,15 +101,22 @@ const Schedules = () => {
   }, [activeRoute, date, statusFilter, toast, reloadKey]);
 
 const filtered = useMemo(() => {
-  const now = new Date();
+  const today = new Date();
 
-  // Set time to start of today
-  now.setHours(0, 0, 0, 0);
+  // normalize today
+  today.setHours(0, 0, 0, 0);
 
   return scheduleList.filter((schedule) => {
     const departureDate = parseISO(schedule.departureAt);
 
-    return departureDate >= now;
+    // normalize schedule date
+    departureDate.setHours(0, 0, 0, 0);
+
+    return (
+      departureDate >= today &&
+      schedule.status !== "completed" &&
+      schedule.status !== "expired"
+    );
   });
 }, [scheduleList]);
 
