@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CreditCard, Smartphone, Loader2 } from "lucide-react";
+import { CreditCard, Smartphone, Banknote, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api-client";
 const paymentMethods = [
   { id: "gcash", name: "GCash", icon: Smartphone, color: "hsl(217 72% 56%)" },
   { id: "maya", name: "Maya", icon: CreditCard, color: "hsl(152 60% 42%)" },
+  { id: "cash", name: "Cash", icon: Banknote, color: "hsl(142 71% 45%)" },
 ];
 
 const Payment = () => {
@@ -60,12 +61,18 @@ const Payment = () => {
       if (success) {
         // Call the payment confirmation API
         await confirmPaymentRequest(booking.id, {
-          paymentMethod: selected as "gcash" | "maya",
+          paymentMethod: selected as "gcash" | "maya" | "cash",
         });
+        
+        const methodNames: Record<string, string> = {
+          "gcash": "GCash",
+          "maya": "Maya",
+          "cash": "Cash"
+        };
         
         toast({ 
           title: "Payment Successful", 
-          description: `₱${booking.totalFare}.00 paid via ${selected === "gcash" ? "GCash" : "Maya"}` 
+          description: `₱${booking.totalFare}.00 paid via ${methodNames[selected]}` 
         });
         navigate(`/payment/status/${booking.id}?result=success`);
       } else {

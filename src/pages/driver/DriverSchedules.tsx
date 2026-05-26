@@ -57,10 +57,11 @@ import {
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 
-const statusColors: Record<ScheduleStatus, string> = {
+const statusColors: Record<ScheduleStatus | "expired", string> = {
   scheduled: "bg-primary text-primary-foreground",
   completed: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
+  expired: "bg-amber-600 text-white",
 };
 
 type ScheduleForm = {
@@ -81,6 +82,19 @@ const emptyForm: ScheduleForm = {
 
 const combineDateTimeToIso = (dateText: string, timeText: string) =>
   new Date(`${dateText}T${timeText}:00.000Z`).toISOString();
+
+const isScheduleExpired = (schedule: ScheduleData): boolean => {
+  const departure = parseISO(schedule.departureAt);
+  const now = new Date();
+  return departure < now;
+};
+
+const getDisplayStatus = (schedule: ScheduleData): string => {
+  if (isScheduleExpired(schedule)) {
+    return "expired";
+  }
+  return schedule.status;
+};
 
 const DriverSchedules = () => {
   const { toast } = useToast();
@@ -268,7 +282,7 @@ const DriverSchedules = () => {
   };
 
   const openEdit = (schedule: ScheduleData) => {
-    if (schedule.status === "completed" || schedule.status === "cancelled") return;
+    if (schedule.status === "completed" || schedule.status === "cancelled" || isScheduleExpired(schedule)) return;
 
     const departure = parseISO(schedule.departureAt);
     const arrival = parseISO(schedule.arrivalAt);
@@ -517,7 +531,7 @@ const DriverSchedules = () => {
                         </p>
                         <p className="text-xs text-muted-foreground">{format(departure, "yyyy-MM-dd")}</p>
                       </div>
-                      <Badge className={cn("text-[10px] shrink-0", statusColors[schedule.status])}>{schedule.status}</Badge>
+                      <Badge className={cn("text-[10px] shrink-0", statusColors[getDisplayStatus(schedule) as ScheduleStatus | "expired"])}>{getDisplayStatus(schedule)}</Badge>
                     </div>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -534,7 +548,7 @@ const DriverSchedules = () => {
                         size="sm"
                         variant="outline"
                         className="flex-1"
-                        disabled={schedule.status === "completed" || schedule.status === "cancelled"}
+                        disabled={schedule.status === "completed" || schedule.status === "cancelled" || isScheduleExpired(schedule)}
                         onClick={() => openEdit(schedule)}
                       >
                         <Edit className="w-3.5 h-3.5" /> Edit
@@ -586,14 +600,14 @@ const DriverSchedules = () => {
                         {totalSeats - availableSeats}/{totalSeats}
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("text-[10px]", statusColors[schedule.status])}>{schedule.status}</Badge>
+                        <Badge className={cn("text-[10px]", statusColors[getDisplayStatus(schedule) as ScheduleStatus | "expired"])}>{getDisplayStatus(schedule)}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             size="icon"
                             variant="ghost"
-                            disabled={schedule.status === "completed" || schedule.status === "cancelled"}
+                            disabled={schedule.status === "completed" || schedule.status === "cancelled" || isScheduleExpired(schedule)}
                             onClick={() => openEdit(schedule)}
                           >
                             <Edit className="w-4 h-4" />

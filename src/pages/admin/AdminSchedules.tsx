@@ -57,10 +57,11 @@ import {
 } from "@/features/auth/api";
 import { ApiError } from "@/lib/api-client";
 
-const statusColors: Record<ScheduleStatus, string> = {
+const statusColors: Record<ScheduleStatus | "expired", string> = {
   scheduled: "bg-primary text-primary-foreground",
   completed: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
+  expired: "bg-amber-600 text-white",
 };
 
 type ScheduleForm = {
@@ -86,6 +87,19 @@ const combineDateTimeToIso = (dateText: string, timeText: string) =>
 
 const toDateInput = (iso: string) => format(parseISO(iso), "yyyy-MM-dd");
 const toTimeInput = (iso: string) => format(parseISO(iso), "HH:mm");
+
+const isScheduleExpired = (schedule: ScheduleData): boolean => {
+  const departure = parseISO(schedule.departureAt);
+  const now = new Date();
+  return departure < now;
+};
+
+const getDisplayStatus = (schedule: ScheduleData): string => {
+  if (isScheduleExpired(schedule)) {
+    return "expired";
+  }
+  return schedule.status;
+};
 
 const AdminSchedules = () => {
   const { toast } = useToast();
@@ -198,6 +212,8 @@ const AdminSchedules = () => {
   };
 
   const openEdit = (schedule: ScheduleData) => {
+    if (isScheduleExpired(schedule)) return;
+    
     setSelectedSchedule(schedule);
     setForm({
       routeId: schedule.route?.id || "",
@@ -552,7 +568,7 @@ const AdminSchedules = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[schedule.status]}>{schedule.status}</Badge>
+                      <Badge className={statusColors[getDisplayStatus(schedule) as ScheduleStatus | "expired"]}>{getDisplayStatus(schedule)}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex gap-2">
@@ -560,6 +576,7 @@ const AdminSchedules = () => {
                           variant="outline"
                           size="icon"
                           onClick={() => openEdit(schedule)}
+                          disabled={isScheduleExpired(schedule)}
                           className="h-8 w-8"
                         >
                           <Edit className="h-4 w-4" />
