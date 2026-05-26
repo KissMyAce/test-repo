@@ -84,7 +84,7 @@ export const listDriverBookingsSchema = z.object({
 
 export const confirmPaymentSchema = z.object({
   body: z.object({
-    paymentMethod: z.enum(["gcash", "maya"]),
+    paymentMethod: z.enum(["gcash", "maya", "cash"]),
     paymentReference: z.string().trim().min(1).optional(),
   }),
   params: z.object({
