@@ -6,14 +6,13 @@ import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getPendingDriversRequest,
-  getAdminJeepneysRequest,
 } from "@/features/auth/api";
 
 interface AdminNotification {
   id: string;
   title: string;
   message: string;
-  type: "driver_verification" | "jeepney_verification" | "system";
+  type: "driver_verification" | "system";
   read: boolean;
   createdAt: string;
   actionUrl?: string;
@@ -21,13 +20,11 @@ interface AdminNotification {
 
 const typeIcons: Record<AdminNotification["type"], typeof Bell> = {
   driver_verification: AlertCircle,
-  jeepney_verification: AlertCircle,
   system: Bell,
 };
 
 const typeColors: Record<AdminNotification["type"], string> = {
   driver_verification: "bg-[hsl(217_72%_92%)] text-primary",
-  jeepney_verification: "bg-[hsl(217_72%_92%)] text-primary",
   system: "bg-muted text-muted-foreground",
 };
 
@@ -43,48 +40,40 @@ const AdminNotifications = () => {
         const newNotifications: AdminNotification[] = [];
 
         // Fetch pending driver verifications
-        const driversPayload = await getPendingDriversRequest();
-        const pendingDrivers = driversPayload.users || [];
-        if (pendingDrivers.length > 0) {
-          newNotifications.push({
-            id: `driver_pending_${Date.now()}`,
-            title: "Driver Verification Queue",
-            message: `${pendingDrivers.length} driver(s) awaiting verification`,
-            type: "driver_verification",
-            read: false,
-            createdAt: new Date().toISOString(),
-            actionUrl: "/admin/users",
-          });
-        }
-
-        // Fetch pending jeepney verifications
-        const jeepneysPayload = await getAdminJeepneysRequest({
-          status: "pending",
-        });
-        const pendingJeepneys = jeepneysPayload.jeepneys || [];
-        if (pendingJeepneys.length > 0) {
-          newNotifications.push({
-            id: `jeepney_pending_${Date.now()}`,
-            title: "Jeepney Verification Queue",
-            message: `${pendingJeepneys.length} jeepney(s) awaiting verification`,
-            type: "jeepney_verification",
-            read: false,
-            createdAt: new Date().toISOString(),
-            actionUrl: "/admin/jeepneys",
-          });
+        try {
+          const driversPayload = await getPendingDriversRequest();
+          const pendingDrivers = Array.isArray(driversPayload)
+            ? driversPayload
+            : (driversPayload as any)?.users || [];
+          
+          if (pendingDrivers.length > 0) {
+            newNotifications.push({
+              id: `driver_pending_${Date.now()}`,
+              title: "Driver Verification Queue",
+              message: `${pendingDrivers.length} driver(s) awaiting verification`,
+              type: "driver_verification",
+              read: false,
+              createdAt: new Date().toISOString(),
+              actionUrl: "/admin/users",
+            });
+          }
+        } catch (error) {
+          // Error fetching drivers
+          console.error("Error loading pending drivers:", error);
         }
 
         if (!mounted) return;
         setNotifications(newNotifications);
+        setLoading(false);
       } catch (error) {
         if (!mounted) return;
+        console.error("Error loading notifications:", error);
         toast({
           title: "Load failed",
           description: "Unable to load notifications",
           variant: "destructive",
         });
-      } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
