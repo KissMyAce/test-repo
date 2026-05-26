@@ -29,6 +29,7 @@ import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverJeepney from "./pages/driver/DriverJeepney";
 import DriverSchedules from "./pages/driver/DriverSchedules";
 import DriverPassengers from "./pages/driver/DriverPassengers";
+import DriverNotifications from "./pages/driver/DriverNotifications";
 import AdminLayout from "./components/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminJeepneys from "./pages/admin/AdminJeepneys";
@@ -36,6 +37,7 @@ import AdminRoutes from "./pages/admin/AdminRoutes";
 import AdminSchedules from "./pages/admin/AdminSchedules";
 import AdminPlaceholder from "./pages/admin/AdminPlaceholder";
 import AdminDriverVerification from "./pages/admin/AdminDriverVerification";
+import AdminNotifications from "./pages/admin/AdminNotifications";
 import PublicOnlyRoute from "./components/guards/PublicOnlyRoute";
 import ProtectedRoute from "./components/guards/ProtectedRoute";
 import RoleRoute from "./components/guards/RoleRoute";
@@ -87,6 +89,7 @@ const App = () => (
                   <Route path="/driver/jeepney" element={<DriverJeepney />} />
                   <Route path="/driver/schedules" element={<DriverSchedules />} />
                   <Route path="/driver/passengers" element={<DriverPassengers />} />
+                  <Route path="/driver/notifications" element={<DriverNotifications />} />
                   <Route path="/driver/profile" element={<Profile />} />
                 </Route>
               </Route>
@@ -99,6 +102,7 @@ const App = () => (
                   <Route path="/admin/schedules" element={<AdminSchedules />} />
                   <Route path="/admin/bookings" element={<AdminPlaceholder />} />
                   <Route path="/admin/users" element={<AdminDriverVerification />} />
+                  <Route path="/admin/notifications" element={<AdminNotifications />} />
                   <Route path="/admin/reports" element={<AdminPlaceholder />} />
                   <Route path="/admin/profile" element={<Profile />} />
                 </Route>

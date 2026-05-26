@@ -55,7 +55,7 @@ const DriverLayout = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link to="/driver/dashboard" className="relative p-2 text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+          <Link to="/driver/notifications" className="relative p-2 text-primary-foreground/80 hover:text-primary-foreground transition-colors">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-destructive ring-2 ring-primary" />
           </Link>
