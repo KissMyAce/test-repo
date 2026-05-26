@@ -100,7 +100,18 @@ const Schedules = () => {
     };
   }, [activeRoute, date, statusFilter, toast, reloadKey]);
 
-  const filtered = useMemo(() => scheduleList, [scheduleList]);
+const filtered = useMemo(() => {
+  const now = new Date();
+
+  // Set time to start of today
+  now.setHours(0, 0, 0, 0);
+
+  return scheduleList.filter((schedule) => {
+    const departureDate = parseISO(schedule.departureAt);
+
+    return departureDate >= now;
+  });
+}, [scheduleList]);
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5">
