@@ -101,19 +101,13 @@ const Schedules = () => {
   }, [activeRoute, date, statusFilter, toast, reloadKey]);
 
 const filtered = useMemo(() => {
-  const today = new Date();
-
-  // normalize today
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
   return scheduleList.filter((schedule) => {
     const departureDate = parseISO(schedule.departureAt);
 
-    // normalize schedule date
-    departureDate.setHours(0, 0, 0, 0);
-
     return (
-      departureDate >= today &&
+      departureDate >= now &&
       schedule.status !== "completed" &&
       schedule.status !== "expired"
     );
