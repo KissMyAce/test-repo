@@ -96,6 +96,20 @@ const getDisplayStatus = (schedule: ScheduleData): string => {
   return schedule.status;
 };
 
+const findReverseRoute = (route: RouteData | undefined, allRoutes: RouteData[]): RouteData | undefined => {
+  if (!route) return undefined;
+  return allRoutes.find(
+    (r) => r.origin === route.destination && r.destination === route.origin
+  );
+};
+
+const getLatestSchedule = (schedules: ScheduleData[]): ScheduleData | undefined => {
+  const futureSchedules = schedules
+    .filter((s) => !isScheduleExpired(s) && s.status === "scheduled")
+    .sort((a, b) => new Date(b.departureAt).getTime() - new Date(a.departureAt).getTime());
+  return futureSchedules[0];
+};
+
 const DriverSchedules = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -192,6 +206,30 @@ const DriverSchedules = () => {
       const arrivalIso = combineDateTimeToIso(form.date, form.arrival);
       if (new Date(arrivalIso).getTime() <= new Date(departureIso).getTime()) {
         nextErrors.arrival = "Must be after departure";
+      }
+    }
+
+    // Check for reverse route requirement and 1-hour time gap only when ADDING a new schedule
+    if (!selectedSchedule) {
+      const latestSchedule = getLatestSchedule(scheduleList);
+      if (latestSchedule && latestSchedule.route) {
+        const selectedRoute = routeList.find((r) => r.id === form.routeId);
+        const reverseRoute = findReverseRoute(latestSchedule.route, routeList);
+
+        if (selectedRoute && reverseRoute) {
+          if (selectedRoute.id !== reverseRoute.id) {
+            nextErrors.routeId = `Next booking must be the reverse route: ${reverseRoute.origin} → ${reverseRoute.destination}`;
+          } else if (form.date && form.departure) {
+            const newDepartureIso = combineDateTimeToIso(form.date, form.departure);
+            const latestDepartureTime = new Date(latestSchedule.departureAt).getTime();
+            const oneHourInMs = 60 * 60 * 1000;
+
+            if (new Date(newDepartureIso).getTime() < latestDepartureTime + oneHourInMs) {
+              const minTime = new Date(latestDepartureTime + oneHourInMs);
+              nextErrors.departure = `Must be at least 1 hour after the latest schedule (after ${format(minTime, "hh:mm a")})`;
+            }
+          }
+        }
       }
     }
 
@@ -314,6 +352,12 @@ const DriverSchedules = () => {
     });
   }, [myJeepney, routeList]);
 
+  const getNextRouteRequirement = useMemo(() => {
+    const latestSchedule = getLatestSchedule(scheduleList);
+    if (!latestSchedule || !latestSchedule.route) return null;
+    return findReverseRoute(latestSchedule.route, routeList);
+  }, [scheduleList, routeList]);
+
   useEffect(() => {
     if (myJeepney?.route?.id && !form.routeId) {
       setForm((prev) => ({ ...prev, routeId: myJeepney.route!.id }));
@@ -326,6 +370,13 @@ const DriverSchedules = () => {
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label className="text-xs">Route</Label>
+        {!selectedSchedule && getNextRouteRequirement ? (
+          <div className="mb-2 p-2 bg-blue-50 rounded border border-blue-200">
+            <p className="text-[11px] text-blue-800">
+              <strong>Next Booking:</strong> Must be <strong>{getNextRouteRequirement.origin} → {getNextRouteRequirement.destination}</strong> (reverse of your latest schedule)
+            </p>
+          </div>
+        ) : null}
         <Select value={form.routeId} onValueChange={(value) => setForm((prev) => ({ ...prev, routeId: value }))}>
           <SelectTrigger className={errors.routeId ? "border-destructive" : ""}>
             <SelectValue placeholder="Select route" />
@@ -361,8 +412,8 @@ const DriverSchedules = () => {
           <Label className="text-xs">Departure Time</Label>
           <Input
             type="time"
-            value={form.departure}
-            onChange={(event) => setForm((prev) => ({ ...prev, departure: event.target.value }))}
+            value={form.departure || ""}
+            onChange={(event) => setForm((prev) => ({ ...prev, departure: event.target.value || "" }))}
             className={errors.departure ? "border-destructive" : ""}
           />
           {errors.departure && <p className="text-[11px] text-destructive">{errors.departure}</p>}
@@ -371,8 +422,8 @@ const DriverSchedules = () => {
           <Label className="text-xs">Arrival Time</Label>
           <Input
             type="time"
-            value={form.arrival}
-            onChange={(event) => setForm((prev) => ({ ...prev, arrival: event.target.value }))}
+            value={form.arrival || ""}
+            onChange={(event) => setForm((prev) => ({ ...prev, arrival: event.target.value || "" }))}
             className={errors.arrival ? "border-destructive" : ""}
           />
           {errors.arrival && <p className="text-[11px] text-destructive">{errors.arrival}</p>}
